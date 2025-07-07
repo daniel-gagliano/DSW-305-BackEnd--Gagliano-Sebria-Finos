@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 let metodos_pago = []; // array anterior para guardar en memoria
 let contadorID = 1;
+ 
 
 router.post('', (req, res) => {
   const { desc_metodo } = req.body;
@@ -20,7 +21,8 @@ router.post('', (req, res) => {
 // router.get('/metodos', (req, res) => res.json(metodos_pago));
 
 router.get('', (req, res) => {
-prisma.metodoPago.findMany().then(metodos_pago=>res.json(metodos_pago))
+prisma.metodoPago.findMany(
+).then(metodos_pago=>res.json(metodos_pago))
 });
 
 router.get('/metodos/:id', (req, res) => {
@@ -28,6 +30,14 @@ router.get('/metodos/:id', (req, res) => {
   if (!metodo) return res.status(404).json({ error: 'Método no encontrado' });
   res.json(metodo);
 });
+
+router.delete(':id', async (req, res) => {
+await prisma.metodoPago.delete({
+  where: {
+    metodoPago
+  }
+})
+})
 
 router.put('/metodos/:id', (req, res) => {
   const { descripcion } = req.body;
@@ -39,7 +49,8 @@ router.put('/metodos/:id', (req, res) => {
   res.json(metodo);
 });
 
-router.delete('/metodos/:id', (req, res) => {
+/*
+  router.delete('/metodos/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const index = metodos_pago.findIndex(m => m.id_metodo === id);
   if (index === -1) return res.status(404).json({ error: 'Método no encontrado' });
@@ -47,5 +58,6 @@ router.delete('/metodos/:id', (req, res) => {
   metodos_pago.splice(index, 1);
   res.json({ mensaje: 'Método eliminado correctamente' });
 });
+*/
 
 module.exports = router;
