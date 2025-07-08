@@ -8,6 +8,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/usuarios', usersController);
 app.use('/metodos', metodosController);
+app.use('/categoria', metodosController);
 
 const PORT = 3000;
 app.listen(PORT, () => {

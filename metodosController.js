@@ -37,7 +37,11 @@ await prisma.metodoPago.delete({
     metodoPago
   }
 })
-})
+  await prisma.Categoria.findMany()
+    .then(metodo => res.json(todoslosMetodos))
+    .catch(error => res.status(500).json({ error: 'Error' }));
+});
+
 
 router.put(':id', (req, res) => {
   const { descripcion } = req.body;
