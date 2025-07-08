@@ -1,33 +1,28 @@
 const { PrismaClient } = require('@prisma/client');
-
 const prisma = new PrismaClient();
 const express = require('express')
 const router = express.Router();
 
 
-/*cod_categoria
-nom_cat
-desc_cat*/
-
 //Metodo post para cargar una nueva categoria
 router.post('', (req, res) => {
-  const { cod_categoria, nom_cat, desc_cat } = req.body;
+  const { id_categoria, nom_categoria, desc_categoria } = req.body;
   prisma.Categoria.create({
     data: {
-      cod_categoria, 
-      nom_cat, 
-      desc_cat
+      id_categoria, 
+      nom_categoria, 
+      desc_categoria
     }
   })
-    .then(Categoria => res.status(201).json(Categoria))
-    .catch(error => res.status(500).json({ error: 'Error'}));
+    .then(()=>res.send("Categoria Creada"))
+    .catch(error => res.status(500).json({ error: 'Error en post'}));
 });
 
 //Listar todas las categorias
 router.get('', (req, res) => {
   prisma.Categoria.findMany()
     .then(Categoria => res.json(Categoria))
-    .catch(error => res.status(500).json({ error: 'Error' }));
+    .catch(error => res.status(500).json({ error: 'Error en get' }));
 });
 
 //filtrar por id
@@ -38,25 +33,25 @@ router.get(':id', (req, res) => {
     }
   })
     .then(Categoria => res.json(Categoria))
-    .catch(error => res.status(500).json({ error: 'Error' }));
+    .catch(error => res.status(500).json({ error: 'Error en get id' }));
 });
 
 
 //Modificar algo por id
 router.put(':id', (req, res) => {
-  const { cod_categoria, nom_cat, desc_cat } = req.body;
+  const { id_categoria, nom_categoria, desc_categoria } = req.body;
   prisma.Categoria.update({
     where: {
       id: parseInt(req.params.id)
     },
     data: {
-      cod_categoria, 
-      nom_cat, 
-      desc_cat
+      id_categoria, 
+      nom_categoria, 
+      desc_categoria
     }
   })
     .then(Categoria => res.json(Categoria))
-    .catch(error => res.status(500).json({ error: 'Error' }));
+    .catch(error => res.status(500).json({ error: 'Error en put id' }));
 });
 
 router.delete(':id', async (req, res) => {

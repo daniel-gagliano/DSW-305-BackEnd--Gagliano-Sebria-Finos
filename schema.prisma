@@ -20,3 +20,9 @@ model MetodoPago {
   id_metodo        Int      @id @default(autoincrement())
   desc_metodo String
 }
+
+model Categoria {
+id_categoria       Int      @id @default(autoincrement())
+nom_categoria      String
+desc_categoria     String
+}

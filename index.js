@@ -1,6 +1,7 @@
 const express = require('express');
 const usersController = require('./usersController');
 const metodosController = require('./metodosController');
+const categoriaController = require('./categoriaController');
 const cors = require('cors');
 const app = express();
 
@@ -8,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/usuarios', usersController);
 app.use('/metodos', metodosController);
-app.use('/categoria', metodosController);
+app.use('/categoria', categoriaController);
 
 const PORT = 3000;
 app.listen(PORT, () => {
