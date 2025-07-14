@@ -26,3 +26,23 @@ id_categoria       Int      @id @default(autoincrement())
 nom_categoria      String
 desc_categoria     String
 }
+
+model Articulo {
+  id_articulo Int     @id @default(autoincrement())
+  nombre      String
+  descripcion String
+  stock       Int
+  precio      Float
+}
+
+model Provincia {
+  cod_provincia Int     @id @default(autoincrement())
+  descripcion   String
+  costo_envio   Float
+}
+
+model Localidad {
+  id_localidad   Int    @id @default(autoincrement())
+  nombre         String
+  codigo_postal  String
+}
