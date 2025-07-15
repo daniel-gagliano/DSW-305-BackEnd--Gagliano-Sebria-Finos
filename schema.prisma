@@ -46,3 +46,8 @@ model Localidad {
   nombre         String
   codigo_postal  String
 }
+
+model Descuento {
+  cod_descuento Int     @id @default(autoincrement())
+  desc_descuento   String
+}
