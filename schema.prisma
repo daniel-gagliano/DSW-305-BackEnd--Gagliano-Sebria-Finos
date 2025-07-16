@@ -13,41 +13,55 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model MetodoPago {
-  id_metodo        Int      @id @default(autoincrement())
+  id_metodo   Int    @id @default(autoincrement())
   desc_metodo String
 }
 
 model Categoria {
-id_categoria       Int      @id @default(autoincrement())
-nom_categoria      String
-desc_categoria     String
+  id_categoria   Int                  @id @default(autoincrement())
+  nom_categoria  String
+  desc_categoria String
+  ar_ca          Categoria_Articulo[]
 }
 
 model Articulo {
-  id_articulo Int     @id @default(autoincrement())
+  id_articulo Int                  @id @default(autoincrement())
   nombre      String
   descripcion String
   stock       Int
   precio      Float
+  ar_ca       Categoria_Articulo[]
+}
+
+model Categoria_Articulo {
+  id_categoria Int
+  id_articulo  Int
+  categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria])
+  articulo     Articulo  @relation(fields: [id_articulo], references: [id_articulo])
+
+  @@id([id_categoria, id_articulo])
 }
 
 model Provincia {
-  cod_provincia Int     @id @default(autoincrement())
+  cod_provincia Int         @id @default(autoincrement())
   descripcion   String
   costo_envio   Float
+  localidades   Localidad[]
 }
 
 model Localidad {
-  id_localidad   Int    @id @default(autoincrement())
-  nombre         String
-  codigo_postal  String
+  id_localidad  Int       @id @default(autoincrement())
+  nombre        String
+  codigo_postal String
+  cod_provincia Int
+  provincia     Provincia @relation(fields: [cod_provincia], references: [cod_provincia])
 }
 
 model Descuento {
-  cod_descuento Int     @id @default(autoincrement())
-  desc_descuento   String
+  cod_descuento  Int    @id @default(autoincrement())
+  desc_descuento String
 }
