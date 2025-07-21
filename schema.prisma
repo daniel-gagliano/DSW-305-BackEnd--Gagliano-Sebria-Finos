@@ -65,3 +65,36 @@ model Descuento {
   cod_descuento  Int    @id @default(autoincrement())
   desc_descuento String
 }
+
+model Linea_Pedido {
+  id_articulo Int
+  nro_pedido  Int
+  cantidad	int
+  sub_total	float
+  pedido    Pedido @relation(fields: [nro_pedido], references: [nro_pedido])
+  articulo     Articulo  @relation(fields: [id_articulo], references: [id_articulo])
+
+  @@id([nro_pedido, id_articulo])
+}
+
+model Estado_Pedido {
+  cod_estado		Int       @default(autoincrement())
+  descripcion		String
+  fecha_desde		DateTime @default(now())
+  nro_pedido 		Int
+  pedido		Pedido @relation(fields: [nro_pedido], references: [nro_pedido])
+  @@id([nro_pedido, cod_estado]
+}
+
+
+model Pedido {
+  nro_pedido		Int       @id @default(autoincrement())
+  fecha_pedido	DateTime @default(now())
+  precio_total		real
+  id_metodo		int
+  metodo_pago	Metodo_pago @relation(fields: [id_metodo], references: [id_metodo])
+  nro_usuario		int
+  usuario		Usuario @relation(fields: [nro_usuario], references: [id])
+  id_localidad		int
+  localidad		Localidad @relation(fields: [id_localidad], references: [id_localidad])
+}
