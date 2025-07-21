@@ -83,7 +83,7 @@ model Estado_Pedido {
   fecha_desde		DateTime @default(now())
   nro_pedido 		Int
   pedido		Pedido @relation(fields: [nro_pedido], references: [nro_pedido])
-  @@id([nro_pedido, cod_estado]
+  @@id([nro_pedido, cod_estado])
 }
 
 
