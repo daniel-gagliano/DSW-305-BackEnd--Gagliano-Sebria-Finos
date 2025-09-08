@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `user` MODIFY `rol` VARCHAR(191) NULL DEFAULT 'CLIENTE';

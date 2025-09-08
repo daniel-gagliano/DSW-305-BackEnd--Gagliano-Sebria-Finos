@@ -14,7 +14,8 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-  rol       String // "CLIENTE" o "ADMIN"
+  rol       String?  @default("CLIENTE") // "CLIENTE" o "ADMIN"
+  pedidos   Pedido[]
 }
 
 model MetodoPago {
@@ -62,6 +63,7 @@ model Localidad {
   codigo_postal String
   cod_provincia Int
   provincia     Provincia @relation(fields: [cod_provincia], references: [cod_provincia])
+  pedidos       Pedido[]
 }
 
 model Descuento {
@@ -99,6 +101,6 @@ model Pedido {
   usuario       User            @relation(fields: [nro_usuario], references: [id])
   id_localidad  Int
   localidad     Localidad       @relation(fields: [id_localidad], references: [id_localidad])
-  linea_pedido  Linea_Pedido
+  linea_pedido  Linea_Pedido[]
   estado_pedido Estado_Pedido[]
 }
