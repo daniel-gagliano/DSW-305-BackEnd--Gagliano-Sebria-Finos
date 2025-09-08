@@ -14,12 +14,13 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  rol       String // "CLIENTE" o "ADMIN"
 }
 
 model MetodoPago {
-  id_metodo   Int    @id @default(autoincrement())
+  id_metodo   Int      @id @default(autoincrement())
   desc_metodo String
-  pedido Pedido
+  pedido      Pedido[]
 }
 
 model Categoria {
@@ -30,13 +31,13 @@ model Categoria {
 }
 
 model Articulo {
-  id_articulo Int                  @id @default(autoincrement())
-  nombre      String
-  descripcion String
-  stock       Int
-  precio      Float
-  ar_ca       Categoria_Articulo[]
-  linea_pedido  Linea_Pedido
+  id_articulo  Int                  @id @default(autoincrement())
+  nombre       String
+  descripcion  String
+  stock        Int
+  precio       Float
+  ar_ca        Categoria_Articulo[]
+  linea_pedido Linea_Pedido[]
 }
 
 model Categoria_Articulo {
@@ -71,34 +72,33 @@ model Descuento {
 model Linea_Pedido {
   id_articulo Int
   nro_pedido  Int
-  cantidad	Int
-  sub_total	Float
-  pedido    Pedido @relation(fields: [nro_pedido], references: [nro_pedido])
-  articulo     Articulo  @relation(fields: [id_articulo], references: [id_articulo])
-  
+  cantidad    Int
+  sub_total   Float
+  pedido      Pedido   @relation(fields: [nro_pedido], references: [nro_pedido])
+  articulo    Articulo @relation(fields: [id_articulo], references: [id_articulo])
 
   @@id([nro_pedido, id_articulo])
 }
 
 model Estado_Pedido {
-  descripcion		String
-  fecha_desde		DateTime @default(now())
-  nro_pedido 		Int
-  pedido		Pedido @relation(fields: [nro_pedido], references: [nro_pedido])
+  descripcion String
+  fecha_desde DateTime @default(now())
+  nro_pedido  Int
+  pedido      Pedido   @relation(fields: [nro_pedido], references: [nro_pedido])
+
   @@id([nro_pedido, fecha_desde])
 }
 
-
 model Pedido {
-  nro_pedido		Int       @id @default(autoincrement())
-  fecha_pedido	DateTime @default(now())
-  precio_total		Float
-  id_metodo		Int
-  metodo_pago	MetodoPago @relation(fields: [id_metodo], references: [id_metodo])
-  nro_usuario		Int
-  usuario		User @relation(fields: [nro_usuario], references: [id])
-  id_localidad		Int
-  localidad		Localidad @relation(fields: [id_localidad], references: [id_localidad])
-  linea_pedido Linea_Pedido
-  estado_pedido Estado_Pedido 
+  nro_pedido    Int             @id @default(autoincrement())
+  fecha_pedido  DateTime        @default(now())
+  precio_total  Float
+  id_metodo     Int
+  metodo_pago   MetodoPago      @relation(fields: [id_metodo], references: [id_metodo])
+  nro_usuario   Int
+  usuario       User            @relation(fields: [nro_usuario], references: [id])
+  id_localidad  Int
+  localidad     Localidad       @relation(fields: [id_localidad], references: [id_localidad])
+  linea_pedido  Linea_Pedido
+  estado_pedido Estado_Pedido[]
 }
