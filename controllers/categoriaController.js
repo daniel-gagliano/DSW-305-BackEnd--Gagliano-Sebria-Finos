@@ -26,7 +26,7 @@ router.get('', (req, res) => {
 });
 
 //filtrar por id
-router.get(':id', (req, res) => {
+router.get('/:id', (req, res) => {
   prisma.Categoria.findUnique({
     where: {
       id: parseInt(req.params.id)
@@ -38,7 +38,7 @@ router.get(':id', (req, res) => {
 
 
 //Modificar algo por id
-router.put(':id', (req, res) => {
+router.put('/:id', (req, res) => {
   const { id_categoria, nom_categoria, desc_categoria } = req.body;
   prisma.Categoria.update({
     where: {
@@ -54,7 +54,7 @@ router.put(':id', (req, res) => {
     .catch(error => res.status(500).json({ error: 'Error en put id' }));
 });
 
-router.delete(':id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   await prisma.Categoria.delete({
     where: {
       id: parseInt(req.params.id)

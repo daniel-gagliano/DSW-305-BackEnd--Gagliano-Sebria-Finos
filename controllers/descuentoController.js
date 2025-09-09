@@ -25,7 +25,7 @@ router.get('', (req, res) => {
 });
 
 //filtrar por codigo
-router.get(':id', (req, res) => {
+router.get('/:id', (req, res) => {
   prisma.Descuento.findUnique({
     where: {
       cod_descuento: parseInt(req.params.id)
@@ -37,7 +37,7 @@ router.get(':id', (req, res) => {
 
 
 //Modificar algo por codigo
-router.put(':id', (req, res) => {
+router.put('/:id', (req, res) => {
   const { cod_descuento, desc_descuento } = req.body;
   prisma.Descuento.update({
     where: {
@@ -52,7 +52,7 @@ router.put(':id', (req, res) => {
     .catch(error => res.status(500).json({ error: 'Error en put id' }));
 });
 
-router.delete(':id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   await prisma.Descuento.delete({
     where: {
       cod_descuento: parseInt(req.params.id)

@@ -4,16 +4,22 @@ const express = require('express');
 const router = express.Router();
 
 // Crear una nueva localidad
-router.post('', (req, res) => {
-  const { nombre, codigo_postal } = req.body;
-  prisma.Localidad.create({
-    data: {
-      nombre,
-      codigo_postal
-    }
-  })
-    .then(localidad => res.status(201).json(localidad))
-    .catch(error => res.status(500).json({ error: 'Error al crear localidad' }));
+router.post('/', async (req, res) => {
+  const { nombre, codigo_postal, cod_provincia } = req.body;
+
+  try {
+    const localidad = await prisma.localidad.create({
+      data: {
+        nombre,
+        codigo_postal,
+        provincia: { connect: { cod_provincia } } //Ahi conecta con Provincia dependiendo el cod_provincia que se le pase a la localidad
+      }
+    });
+    res.status(201).json(localidad);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al crear localidad' });
+  }
 });
 
 // Listar todas las localidades

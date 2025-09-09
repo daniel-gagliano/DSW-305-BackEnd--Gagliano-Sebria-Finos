@@ -14,7 +14,7 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-  rol       String?  @default("CLIENTE") // "CLIENTE" o "ADMIN"
+  rol       String?  @default("CLIENTE") // "CLIENTE" o "ADMIN" No es obligatorio, pero por defecto toma cliente
   pedidos   Pedido[]
 }
 
@@ -101,6 +101,6 @@ model Pedido {
   usuario       User            @relation(fields: [nro_usuario], references: [id])
   id_localidad  Int
   localidad     Localidad       @relation(fields: [id_localidad], references: [id_localidad])
-  linea_pedido  Linea_Pedido[]
+  linea_pedidos  Linea_Pedido[]
   estado_pedido Estado_Pedido[]
 }

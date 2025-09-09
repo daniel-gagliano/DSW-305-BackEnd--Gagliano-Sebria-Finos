@@ -25,13 +25,13 @@ prisma.metodoPago.findMany(
 ).then(metodos_pago=>res.json(metodos_pago))
 });
 
-router.get(':id', (req, res) => {
+router.get('/:id', (req, res) => {
   const metodo = metodos_pago.find(m => m.id_metodo === parseInt(req.params.id));
   if (!metodo) return res.status(404).json({ error: 'Método no encontrado' });
   res.json(metodo);
 });
 
-router.delete(':id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
 await prisma.metodoPago.delete({
   where: {
     metodoPago
@@ -43,7 +43,7 @@ await prisma.metodoPago.delete({
 });
 
 
-router.put(':id', (req, res) => {
+router.put('/:id', (req, res) => {
   const { descripcion } = req.body;
   const metodo = metodos_pago.find(m => m.id_metodo === parseInt(req.params.id));
   if (!metodo) return res.status(404).json({ error: 'Método no encontrado' });

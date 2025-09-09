@@ -9,5 +9,13 @@
   "devDependencies": {
     "nodemon": "^3.1.10",
     "prisma": "^6.11.1"
-  }
+  },
+  "scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+
+   // Modificacion de nodemon que hace que sea mejor a la hora de cuando actualizar,
+   // es para optimizar
 }
+}
+
