@@ -61,4 +61,15 @@ router.delete('/:id', (req, res) => {
     .catch(error => res.status(500).json({ error: 'Error al eliminar localidad' }));
 });
 
+router.post('/', async (req, res) => {
+  try {
+    const localidad = await prisma.localidad.create({
+      data: req.body
+    });
+    res.status(201).json(localidad);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 module.exports = router;
