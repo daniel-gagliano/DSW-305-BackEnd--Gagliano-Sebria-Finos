@@ -14,6 +14,10 @@
   "start": "node index.js",
   "dev": "nodemon index.js"
 
+<<<<<<< HEAD
+=======
+}
+>>>>>>> 0d41ab86e0303d68b4d77fadc9371fdaf9d80881
 }
 
 }

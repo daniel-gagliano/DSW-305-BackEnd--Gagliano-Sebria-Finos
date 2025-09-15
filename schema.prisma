@@ -94,13 +94,14 @@ model Estado_Pedido {
 model Pedido {
   nro_pedido    Int             @id @default(autoincrement())
   fecha_pedido  DateTime        @default(now())
-  precio_total  Float
+  precio_total  Float           @default(0)  // <- por defecto lo carga temporalmente en 0
   id_metodo     Int
   metodo_pago   MetodoPago      @relation(fields: [id_metodo], references: [id_metodo])
   nro_usuario   Int
   usuario       User            @relation(fields: [nro_usuario], references: [id])
   id_localidad  Int
   localidad     Localidad       @relation(fields: [id_localidad], references: [id_localidad])
-  linea_pedidos  Linea_Pedido[]
+  linea_pedido  Linea_Pedido[]
   estado_pedido Estado_Pedido[]
 }
+

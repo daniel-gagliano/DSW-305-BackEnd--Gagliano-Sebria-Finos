@@ -3,13 +3,25 @@ const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Crear un pedido con líneas
+// =======================
+// CREAR PEDIDO
+// =======================
 router.post('/', async (req, res) => {
-  const { id_metodo, nro_usuario, id_localidad, precio_total, lineas_pedido } = req.body;
-
-  const lineas = lineas_pedido || []; //asi no se rompe el .map si no mandan lineas_pedido
+  const { id_metodo, nro_usuario, id_localidad, linea_pedido } = req.body;
+  const lineas = linea_pedido || [];
 
   try {
+    // Traer precio_envio de la provincia
+    const localidad = await prisma.localidad.findUnique({
+      where: { id_localidad },
+      include: { provincia: true }
+    });
+    const precio_envio = localidad?.provincia?.costo_envio || 0;
+
+    // Calcular total de las líneas + envío
+    const totalLineas = lineas.reduce((acc, l) => acc + l.sub_total, 0);
+    const precio_total = totalLineas + precio_envio;
+
     const pedido = await prisma.pedido.create({
       data: {
         id_metodo,
@@ -24,62 +36,139 @@ router.post('/', async (req, res) => {
           }))
         }
       },
-      include: {
-        lineas_pedido: true
-      }
+      include: { linea_pedido: true }
     });
-    res.status(201).json(pedido);
+
+    res.status(201).json({ ...pedido, precio_envio });
   } catch (error) {
     console.error('ERROR AL CREAR PEDIDO:', error);
-    res.status(500).json({
-      error: error.message,
-      code: error.code,
-      meta: error.meta
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
-
-// Listar todos los pedidos
+// =======================
+// LISTAR TODOS LOS PEDIDOS
+// =======================
 router.get('/', async (req, res) => {
   try {
     const pedidos = await prisma.pedido.findMany({
-      include: { lineas_pedido: true }
+      include: {
+        linea_pedido: true,
+        localidad: { include: { provincia: true } }
+      }
     });
-    res.json(pedidos);
+
+    const pedidosConTotal = pedidos.map(pedido => {
+      const totalLineas = pedido.linea_pedido.reduce((acc, l) => acc + l.sub_total, 0);
+      const precio_envio = pedido.localidad?.provincia?.costo_envio || 0;
+      return { ...pedido, precio_total: totalLineas + precio_envio, precio_envio };
+    });
+
+    res.json(pedidosConTotal);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener pedidos' });
+    console.error('ERROR AL OBTENER PEDIDOS:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Obtener pedido por ID
+// =======================
+// OBTENER PEDIDO POR ID
+// =======================
 router.get('/:id', async (req, res) => {
   try {
     const pedido = await prisma.pedido.findUnique({
       where: { nro_pedido: parseInt(req.params.id) },
-      include: { lineas_pedido: true }
+      include: {
+        linea_pedido: true,
+        localidad: { include: { provincia: true } }
+      }
     });
-    res.json(pedido);
+
+    if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
+
+    const totalLineas = pedido.linea_pedido.reduce((acc, l) => acc + l.sub_total, 0);
+    const precio_envio = pedido.localidad?.provincia?.costo_envio || 0;
+    const precio_total = totalLineas + precio_envio;
+
+    res.json({ ...pedido, precio_total, precio_envio });
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener pedido' });
+    console.error('ERROR AL OBTENER PEDIDO:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Actualizar pedido (solo precio_total y localidad/metodo)
-router.put('/:id', async (req, res) => {
-  const { precio_total, id_localidad, id_metodo } = req.body;
+// =======================
+// OBTENER PEDIDOS DE UN USUARIO
+// =======================
+router.get('/usuario/:nro_usuario', async (req, res) => {
   try {
+    const pedidos = await prisma.pedido.findMany({
+      where: { nro_usuario: parseInt(req.params.nro_usuario) },
+      include: {
+        linea_pedido: true,
+        localidad: { include: { provincia: true } }
+      }
+    });
+
+    const pedidosConTotal = pedidos.map(pedido => {
+      const totalLineas = pedido.linea_pedido.reduce((acc, l) => acc + l.sub_total, 0);
+      const precio_envio = pedido.localidad?.provincia?.costo_envio || 0;
+      return { ...pedido, precio_total: totalLineas + precio_envio, precio_envio };
+    });
+
+    res.json(pedidosConTotal);
+  } catch (error) {
+    console.error('ERROR AL OBTENER PEDIDOS DEL USUARIO:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// =======================
+// ACTUALIZAR PEDIDO
+// =======================
+router.put('/:id', async (req, res) => {
+  const { id_metodo, id_localidad, linea_pedido } = req.body;
+  const lineas = linea_pedido || [];
+
+  try {
+    // Traer precio_envio
+    const localidad = await prisma.localidad.findUnique({
+      where: { id_localidad },
+      include: { provincia: true }
+    });
+    const precio_envio = localidad?.provincia?.costo_envio || 0;
+
+    const totalLineas = lineas.reduce((acc, l) => acc + l.sub_total, 0);
+    const precio_total = totalLineas + precio_envio;
+
     const pedido = await prisma.pedido.update({
       where: { nro_pedido: parseInt(req.params.id) },
-      data: { precio_total, id_localidad, id_metodo }
+      data: {
+        id_metodo,
+        id_localidad,
+        precio_total,
+        linea_pedido: {
+          deleteMany: {}, // borrar líneas anteriores
+          create: lineas.map(lp => ({
+            id_articulo: lp.id_articulo,
+            cantidad: lp.cantidad,
+            sub_total: lp.sub_total
+          }))
+        }
+      },
+      include: { linea_pedido: true }
     });
-    res.json(pedido);
+
+    res.json({ ...pedido, precio_envio });
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar pedido' });
+    console.error('ERROR AL ACTUALIZAR PEDIDO:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Agregar estado a un pedido
+// =======================
+// AGREGAR ESTADO A UN PEDIDO
+// =======================
 router.post('/:id/estado', async (req, res) => {
   const { descripcion } = req.body;
   try {
@@ -91,11 +180,14 @@ router.post('/:id/estado', async (req, res) => {
     });
     res.status(201).json(estado);
   } catch (error) {
-    res.status(500).json({ error: 'Error al agregar estado' });
+    console.error('ERROR AL AGREGAR ESTADO:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Eliminar un pedido
+// =======================
+// ELIMINAR PEDIDO
+// =======================
 router.delete('/:id', async (req, res) => {
   try {
     await prisma.pedido.delete({
@@ -103,7 +195,8 @@ router.delete('/:id', async (req, res) => {
     });
     res.json({ mensaje: 'Pedido eliminado' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar pedido' });
+    console.error('ERROR AL ELIMINAR PEDIDO:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
