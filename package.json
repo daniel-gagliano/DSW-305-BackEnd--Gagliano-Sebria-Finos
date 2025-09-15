@@ -14,8 +14,6 @@
   "start": "node index.js",
   "dev": "nodemon index.js"
 
-   // Modificacion de nodemon que hace que sea mejor a la hora de cuando actualizar,
-   // es para optimizar
 }
 }
 
