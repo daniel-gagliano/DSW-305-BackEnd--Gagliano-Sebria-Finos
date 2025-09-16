@@ -5,7 +5,7 @@ const vaciarCarritoBtn = document.querySelector('#vaciar-carrito');
 const listarArticulo = document.querySelector('#lista-Articulo');
 let articulosCarrito = [];
 
-
+// Esto se hace antes de cargar linea_pedido. Una vez el carrito esté armado es cuando se crea la relación linea_pedido entre articulo y pedido. T.
 
 cargarEventListeners();
 function cargarEventListeners(){
@@ -58,7 +58,7 @@ function leerDatosArticulo(Articulo){
         precio: Articulo.querySelector('.precio span').textContent,
         id: Articulo.querySelector('a').getAttribute('data-id'),
         cantidad: 1
-    }
+    } 
 
     //Chequea si existe el elemento en el carrito
 
@@ -91,7 +91,7 @@ function carritoHMTL() {
     //Limpia el carrito
     limpiarHTML();
 
-    //Agrega el curso al carrito
+    //Agrega el articulo al carrito
     articulosCarrito.forEach( Articulo => {
         const {imagen, nombre, precio, cantidad, id} = Articulo;
         const row = document.createElement('tr');

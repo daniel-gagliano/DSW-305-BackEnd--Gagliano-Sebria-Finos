@@ -1,4 +1,6 @@
 {
+  "name": "backend-dsw",
+  "version": "1.0.0",
   "dependencies": {
     "@prisma/client": "^6.11.1",
     "cors": "^2.8.5",
@@ -11,13 +13,7 @@
     "prisma": "^6.11.1"
   },
   "scripts": {
-  "start": "node index.js",
-  "dev": "nodemon index.js"
-
-<<<<<<< HEAD
-=======
-}
->>>>>>> 0d41ab86e0303d68b4d77fadc9371fdaf9d80881
-}
-
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  }
 }

@@ -6,28 +6,35 @@ const prisma = new PrismaClient();
 // =======================
 // CREAR PEDIDO
 // =======================
+// Crear un pedido con líneas
 router.post('/', async (req, res) => {
   const { id_metodo, nro_usuario, id_localidad, linea_pedido } = req.body;
+
   const lineas = linea_pedido || [];
 
   try {
-    // Traer precio_envio de la provincia
+    // Traer localidad y provincia para saber costo_envio
     const localidad = await prisma.localidad.findUnique({
       where: { id_localidad },
       include: { provincia: true }
     });
-    const precio_envio = localidad?.provincia?.costo_envio || 0;
 
-    // Calcular total de las líneas + envío
-    const totalLineas = lineas.reduce((acc, l) => acc + l.sub_total, 0);
-    const precio_total = totalLineas + precio_envio;
+    if (!localidad) {
+      return res.status(404).json({ error: "Localidad no encontrada" });
+    }
 
+    // Calcular subtotales
+    const subtotal = lineas.reduce((acc, lp) => acc + lp.sub_total, 0);
+    const costo_envio = localidad.provincia.costo_envio || 0;
+    const precio_total = subtotal + costo_envio;
+
+    // Crear el pedido ya con el total correcto
     const pedido = await prisma.pedido.create({
       data: {
         id_metodo,
         nro_usuario,
         id_localidad,
-        precio_total,
+        precio_total,  // ✅ ya incluye envío
         linea_pedido: {
           create: lineas.map(lp => ({
             id_articulo: lp.id_articulo,
@@ -36,10 +43,13 @@ router.post('/', async (req, res) => {
           }))
         }
       },
-      include: { linea_pedido: true }
+      include: {
+        linea_pedido: true,
+        localidad: { include: { provincia: true } }
+      }
     });
 
-    res.status(201).json({ ...pedido, precio_envio });
+    res.status(201).json(pedido);
   } catch (error) {
     console.error('ERROR AL CREAR PEDIDO:', error);
     res.status(500).json({ error: error.message });
@@ -126,43 +136,40 @@ router.get('/usuario/:nro_usuario', async (req, res) => {
 // =======================
 // ACTUALIZAR PEDIDO
 // =======================
+// Actualizar pedido
 router.put('/:id', async (req, res) => {
   const { id_metodo, id_localidad, linea_pedido } = req.body;
-  const lineas = linea_pedido || [];
 
   try {
-    // Traer precio_envio
     const localidad = await prisma.localidad.findUnique({
       where: { id_localidad },
       include: { provincia: true }
     });
-    const precio_envio = localidad?.provincia?.costo_envio || 0;
 
-    const totalLineas = lineas.reduce((acc, l) => acc + l.sub_total, 0);
-    const precio_total = totalLineas + precio_envio;
+    if (!localidad) {
+      return res.status(404).json({ error: "Localidad no encontrada" });
+    }
+
+    const subtotal = (linea_pedido || []).reduce((acc, lp) => acc + lp.sub_total, 0);
+    const costo_envio = localidad.provincia.costo_envio || 0;
+    const precio_total = subtotal + costo_envio;
 
     const pedido = await prisma.pedido.update({
       where: { nro_pedido: parseInt(req.params.id) },
       data: {
         id_metodo,
         id_localidad,
-        precio_total,
-        linea_pedido: {
-          deleteMany: {}, // borrar líneas anteriores
-          create: lineas.map(lp => ({
-            id_articulo: lp.id_articulo,
-            cantidad: lp.cantidad,
-            sub_total: lp.sub_total
-          }))
-        }
+        precio_total
       },
-      include: { linea_pedido: true }
+      include: {
+        linea_pedido: true,
+        localidad: { include: { provincia: true } }
+      }
     });
 
-    res.json({ ...pedido, precio_envio });
+    res.json(pedido);
   } catch (error) {
-    console.error('ERROR AL ACTUALIZAR PEDIDO:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Error al actualizar pedido' });
   }
 });
 
