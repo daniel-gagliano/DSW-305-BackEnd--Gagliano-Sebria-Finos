@@ -2,11 +2,11 @@ const express = require('express');
 const usersController = require('./controllers/usersController');
 const metodosController = require('./controllers/metodosController');
 const categoriaController = require('./controllers/categoriaController');
-const articuloController = require('./controllers/articuloController');
+//const articuloController = require('./controllers/articuloController');
 const localidadRouter = require('./controllers/localidadController');
 const provinciaRouter = require('./controllers/provinciaController');
 const descuentoRouter = require('./controllers/descuentoController');
-const pedidoController = require('./controllers/pedidoController');
+//const pedidoController = require('./controllers/pedidoController');
 const articuloRoutes = require('./routes/articuloRoutes'); 
 const pedidoRoutes = require('./routes/pedidoRoutes');
 

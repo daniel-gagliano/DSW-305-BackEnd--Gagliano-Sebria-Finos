@@ -6,37 +6,41 @@ const prisma = new PrismaClient();
 // =======================
 // CREAR PEDIDO
 // =======================
-// Crear un pedido con líneas
-router.post('/', async (req, res) => {
-  const { id_metodo, nro_usuario, id_localidad, linea_pedido } = req.body;
 
-  const lineas = linea_pedido || [];
-
+exports.createPedido = async (req, res, next) => {
   try {
-    // Traer localidad y provincia para saber costo_envio
+    // Validar errores de express-validator
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errores: errors.array() });
+    }
+
+    const { id_metodo, nro_usuario, id_localidad, linea_pedido } = req.body;
+
+    // Calcular subtotales
+    const subtotal = linea_pedido.reduce((acc, lp) => acc + lp.sub_total, 0);
+
+    // Obtener costo de envío según provincia
     const localidad = await prisma.localidad.findUnique({
       where: { id_localidad },
       include: { provincia: true }
     });
-
     if (!localidad) {
       return res.status(404).json({ error: "Localidad no encontrada" });
     }
 
-    // Calcular subtotales
-    const subtotal = lineas.reduce((acc, lp) => acc + lp.sub_total, 0);
     const costo_envio = localidad.provincia.costo_envio || 0;
     const precio_total = subtotal + costo_envio;
 
-    // Crear el pedido ya con el total correcto
+    // Crear pedido con lineas
     const pedido = await prisma.pedido.create({
       data: {
         id_metodo,
         nro_usuario,
         id_localidad,
-        precio_total,  // ✅ ya incluye envío
+        precio_total,
         linea_pedido: {
-          create: lineas.map(lp => ({
+          create: linea_pedido.map(lp => ({
             id_articulo: lp.id_articulo,
             cantidad: lp.cantidad,
             sub_total: lp.sub_total
@@ -51,10 +55,10 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(pedido);
   } catch (error) {
-    console.error('ERROR AL CREAR PEDIDO:', error);
-    res.status(500).json({ error: error.message });
+    next(error); // se va al middleware global de errores
   }
-});
+};
+
 
 // =======================
 // LISTAR TODOS LOS PEDIDOS
@@ -136,7 +140,7 @@ router.get('/usuario/:nro_usuario', async (req, res) => {
 // =======================
 // ACTUALIZAR PEDIDO
 // =======================
-// Actualizar pedido
+
 router.put('/:id', async (req, res) => {
   const { id_metodo, id_localidad, linea_pedido } = req.body;
 
@@ -207,4 +211,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+
