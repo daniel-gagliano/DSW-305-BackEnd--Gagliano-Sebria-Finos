@@ -8,6 +8,7 @@ const provinciaRouter = require('./controllers/provinciaController');
 const descuentoRouter = require('./controllers/descuentoController');
 const pedidoController = require('./controllers/pedidoController');
 const articuloRoutes = require('./routes/articuloRoutes'); 
+const articuloCategoriaController = require('./controllers/articuloCategoriaController');
 
 const cors = require('cors');
 const app = express();
@@ -22,6 +23,7 @@ app.use('/localidades', localidadRouter);
 app.use('/provincias', provinciaRouter);
 app.use('/descuentos', descuentoRouter);
 app.use('/pedidos', pedidoController);
+app.use('/articulo_categoria', articuloCategoriaController);
 
 
 const PORT = 3000;
