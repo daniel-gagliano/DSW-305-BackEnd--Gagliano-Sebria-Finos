@@ -1,3 +1,4 @@
+// levanto express y traigo los controllers
 const express = require('express');
 const usersController = require('./controllers/usersController');
 const metodosController = require('./controllers/metodosController');
@@ -13,8 +14,12 @@ const articuloCategoriaController = require('./controllers/articuloCategoriaCont
 const cors = require('cors');
 const app = express();
 
-app.use(cors()); //habilita cors
-app.use(express.json());
+// Middlewares globales
+app.use(cors()); // habilita CORS para que el front pueda llamar al back desde otro puerto
+app.use(express.json()); // parsea JSON en el body
+
+// Ruteo: asocio la base path con cada controller
+// Ej: todas las rutas definidas en usersController responden bajo /usuarios
 app.use('/usuarios', usersController);
 app.use('/metodos', metodosController);
 app.use('/categorias', categoriaController);
