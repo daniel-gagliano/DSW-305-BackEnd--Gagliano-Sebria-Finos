@@ -1,8 +1,7 @@
-// traigo prisma pa' hablar con la DB
+// Prisma es el ORM que permite trabajar con la BDD. Se puede intereactuar con BDD Relacionales con lenguaje orientado a objeto
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// express pa' definir rutas REST
 const express = require('express');
 const router = express.Router();
 
@@ -29,8 +28,6 @@ router.post('', async (req, res) => {
 });
 
 // Obtener todas las relaciones
-// GET /articulo_categoria
-// Devuelve todas las filas de la tabla puente
 router.get('', async (req, res) => {
   try {
     const relaciones = await prisma.Categoria_Articulo.findMany();
@@ -48,7 +45,6 @@ router.get('/:id_categoria/:id_articulo', async (req, res) => {
   try {
     const rel = await prisma.Categoria_Articulo.findUnique({
       where: {
-        // Prisma composite primary key
         id_categoria_id_articulo: {
           id_categoria: parseInt(id_categoria),
           id_articulo: parseInt(id_articulo)
