@@ -8,22 +8,38 @@ const prisma = new PrismaClient();
 // =======================
 // Crear un pedido con líneas
 router.post('/', async (req, res) => {
-  const { id_metodo, nro_usuario, id_localidad, linea_pedido } = req.body;
+  const { id_metodo, nro_usuario, id_localidad, id_provincia, linea_pedido } = req.body;
 
   const lineas = linea_pedido || [];
 
   try {
-    // Traer localidad y provincia para saber costo_envio
-    const localidad = await prisma.localidad.findUnique({
-      where: { id_localidad },
-      include: { provincia: true }
-    });
-
-    if (!localidad) {
-      return res.status(404).json({ error: "Localidad no encontrada" });
+    console.log('POST /pedidos body:', req.body);
+    // Si no se envió id_localidad, pero sí id_provincia, el backend elige
+    // una localidad por defecto dentro de esa provincia (por ejemplo la primera)
+    let localidad = null;
+    if (!id_localidad && id_provincia) {
+      localidad = await prisma.localidad.findFirst({
+        where: { cod_provincia: id_provincia },
+        include: { provincia: true }
+      });
+      if (!localidad) {
+        return res.status(404).json({ error: 'No hay localidades para la provincia indicada' });
+      }
+    } else {
+      localidad = await prisma.localidad.findUnique({
+        where: { id_localidad },
+        include: { provincia: true }
+      });
+      if (!localidad) {
+        return res.status(404).json({ error: "Localidad no encontrada" });
+      }
     }
 
-    // Calcular subtotales
+  // Asegurar que tenemos el id_localidad que usaremos para el pedido
+  const id_localidad_usar = id_localidad || (localidad && localidad.id_localidad);
+  console.log('id_localidad_usar:', id_localidad_usar, 'id_metodo:', id_metodo);
+
+  // Calcular subtotales
     const subtotal = lineas.reduce((acc, lp) => acc + lp.sub_total, 0);
     const costo_envio = localidad.provincia.costo_envio || 0;
     const precio_total = subtotal + costo_envio;
@@ -31,10 +47,11 @@ router.post('/', async (req, res) => {
     // Crear el pedido ya con el total correcto
     const pedido = await prisma.pedido.create({
       data: {
-        id_metodo,
         nro_usuario,
-        id_localidad,
-        precio_total,  // ✅ ya incluye envío
+        precio_total, // ya incluye envío
+        // vincular método y localidad por su id
+        metodo_pago: { connect: { id_metodo: id_metodo } },
+        localidad: { connect: { id_localidad: id_localidad_usar } },
         linea_pedido: {
           create: lineas.map(lp => ({
             id_articulo: lp.id_articulo,

@@ -77,9 +77,12 @@ router.post('/', async (req, res) => {
       if (!match) {
         return res.status(401).json({ error: 'Credenciales inválidas' });
       }
-  // devuelvo el usuario sin la contraseña
-  const { password: _p, ...userNoPass } = user;
-  return res.status(200).json({ user: userNoPass, message: 'Inicio de sesión exitoso' });
+      // devuelvo el usuario sin la contraseña y un token simple
+      const { password: _p, ...userNoPass } = user;
+      // crear token sencillo (en un secreto real usar variable de entorno)
+      const jwt = require('jsonwebtoken');
+      const token = jwt.sign({ id: userNoPass.id, email: userNoPass.email }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' });
+      return res.status(200).json({ user: userNoPass, token, message: 'Inicio de sesión exitoso' });
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
