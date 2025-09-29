@@ -77,8 +77,9 @@ router.post('/', async (req, res) => {
       if (!match) {
         return res.status(401).json({ error: 'Credenciales inválidas' });
       }
-      // por ahora solo respondo con un mensaje de éxito (más adelante JWT)
-      return res.status(200).json({ message: 'Inicio de sesión exitoso' });
+  // devuelvo el usuario sin la contraseña
+  const { password: _p, ...userNoPass } = user;
+  return res.status(200).json({ user: userNoPass, message: 'Inicio de sesión exitoso' });
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
