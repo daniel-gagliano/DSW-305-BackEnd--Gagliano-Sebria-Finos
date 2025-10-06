@@ -36,3 +36,9 @@ app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 }
 );
+
+// Middleware global de manejo de errores (último middleware)
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && (err.stack || err));
+  res.status(500).json({ error: 'Internal Server Error' });
+});

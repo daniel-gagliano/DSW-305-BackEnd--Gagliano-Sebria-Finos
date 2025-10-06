@@ -2,64 +2,89 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
 const prisma = new PrismaClient();
+console.log('pedidoController.js cargado (versión con usuario.connect)');
 
 // =======================
 // CREAR PEDIDO
 // =======================
-// Crear un pedido con líneas
 router.post('/', async (req, res) => {
   const { id_metodo, nro_usuario, id_localidad, id_provincia, linea_pedido } = req.body;
 
-  const lineas = linea_pedido || [];
+  // validaciones mínimas en entrada
+  if (!id_metodo || !nro_usuario || !Array.isArray(linea_pedido) || linea_pedido.length === 0) {
+    return res.status(400).json({ error: 'id_metodo, nro_usuario y linea_pedido (no vacío) son obligatorios' });
+  }
 
   try {
     console.log('POST /pedidos body:', req.body);
-    // Si no se envió id_localidad, pero sí id_provincia, el backend elige
-    // una localidad por defecto dentro de esa provincia (por ejemplo la primera)
+
+    // validar usuario
+    const usuario = await prisma.user.findUnique({ where: { id: Number(nro_usuario) } });
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // validar método de pago
+    const metodo = await prisma.metodoPago.findUnique({ where: { id_metodo: Number(id_metodo) } });
+    if (!metodo) return res.status(404).json({ error: 'Método de pago no encontrado' });
+
+    // resolver localidad (por id_localidad o por id_provincia)
     let localidad = null;
     if (!id_localidad && id_provincia) {
       localidad = await prisma.localidad.findFirst({
-        where: { cod_provincia: id_provincia },
+        where: { cod_provincia: Number(id_provincia) },
         include: { provincia: true }
       });
-      if (!localidad) {
-        return res.status(404).json({ error: 'No hay localidades para la provincia indicada' });
-      }
+      if (!localidad) return res.status(404).json({ error: 'No hay localidades para la provincia indicada' });
     } else {
       localidad = await prisma.localidad.findUnique({
-        where: { id_localidad },
+        where: { id_localidad: Number(id_localidad) },
         include: { provincia: true }
       });
-      if (!localidad) {
-        return res.status(404).json({ error: "Localidad no encontrada" });
-      }
+      if (!localidad) return res.status(404).json({ error: 'Localidad no encontrada' });
     }
 
-  // Asegurar que tenemos el id_localidad que usaremos para el pedido
-  const id_localidad_usar = id_localidad || (localidad && localidad.id_localidad);
-  console.log('id_localidad_usar:', id_localidad_usar, 'id_metodo:', id_metodo);
+    const id_localidad_usar = Number(id_localidad) || (localidad && localidad.id_localidad);
+    if (!id_localidad_usar) return res.status(400).json({ error: 'No se pudo determinar la localidad para el pedido' });
 
-  // Calcular subtotales
-    const subtotal = lineas.reduce((acc, lp) => acc + lp.sub_total, 0);
-    const costo_envio = localidad.provincia.costo_envio || 0;
+    // validar artículos y recalcular subtotales desde DB para evitar inconsistencias
+    let subtotal = 0;
+    const lineasCreate = [];
+
+    for (const lp of linea_pedido) {
+      if (!lp.id_articulo || !lp.cantidad) {
+        return res.status(400).json({ error: 'Cada linea debe contener id_articulo y cantidad' });
+      }
+      const articulo = await prisma.articulo.findUnique({ where: { id_articulo: Number(lp.id_articulo) } });
+      if (!articulo) {
+        return res.status(404).json({ error: `Artículo ${lp.id_articulo} no encontrado` });
+      }
+      const sub_total_calculado = Number(articulo.precio) * Number(lp.cantidad);
+      subtotal += sub_total_calculado;
+      lineasCreate.push({
+        id_articulo: Number(lp.id_articulo),
+        cantidad: Number(lp.cantidad),
+        sub_total: sub_total_calculado
+      });
+    }
+
+    const costo_envio = localidad.provincia?.costo_envio || 0;
     const precio_total = subtotal + costo_envio;
 
-    // Crear el pedido ya con el total correcto
+    // crear pedido con relaciones anidadas
+    // Para Prisma es necesario conectar la relación 'usuario' explícitamente
+    const dataToCreate = {
+      precio_total,
+      usuario: { connect: { id: Number(nro_usuario) } },
+      metodo_pago: { connect: { id_metodo: Number(id_metodo) } },
+      localidad: { connect: { id_localidad: Number(id_localidad_usar) } },
+      linea_pedido: {
+        create: lineasCreate
+      }
+    };
+
+    console.log('DATA a pasar a prisma.pedido.create:', JSON.stringify(dataToCreate, null, 2));
+
     const pedido = await prisma.pedido.create({
-      data: {
-        nro_usuario,
-        precio_total, // ya incluye envío
-        // vincular método y localidad por su id
-        metodo_pago: { connect: { id_metodo: id_metodo } },
-        localidad: { connect: { id_localidad: id_localidad_usar } },
-        linea_pedido: {
-          create: lineas.map(lp => ({
-            id_articulo: lp.id_articulo,
-            cantidad: lp.cantidad,
-            sub_total: lp.sub_total
-          }))
-        }
-      },
+      data: dataToCreate,
       include: {
         linea_pedido: true,
         localidad: { include: { provincia: true } }
@@ -68,8 +93,9 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(pedido);
   } catch (error) {
-    console.error('ERROR AL CREAR PEDIDO:', error);
-    res.status(500).json({ error: error.message });
+    // loguear stack completo para debug en servidor
+    console.error('ERROR AL CREAR PEDIDO:', error.stack || error);
+    res.status(500).json({ error: 'Error interno al crear pedido', details: error.message });
   }
 });
 
