@@ -11,4 +11,5 @@
   } catch (err) {
     console.error('ERROR AL CONSULTAR API:', err);
   }
+  
 })();
