@@ -86,7 +86,11 @@ router.post('/', async (req, res) => {
     const pedido = await prisma.pedido.create({
       data: dataToCreate,
       include: {
-        linea_pedido: true,
+        linea_pedido: {
+          include: {
+            articulo: true
+          }
+        },
         localidad: { include: { provincia: true } }
       }
     });
@@ -106,7 +110,11 @@ router.get('/', async (req, res) => {
   try {
     const pedidos = await prisma.pedido.findMany({
       include: {
-        linea_pedido: true,
+        linea_pedido: {
+          include: {
+            articulo: true
+          }
+        },
         localidad: { include: { provincia: true } }
       }
     });
@@ -132,7 +140,11 @@ router.get('/:id', async (req, res) => {
     const pedido = await prisma.pedido.findUnique({
       where: { nro_pedido: parseInt(req.params.id) },
       include: {
-        linea_pedido: true,
+        linea_pedido: {
+          include: {
+            articulo: true
+          }
+        },
         localidad: { include: { provincia: true } }
       }
     });
@@ -158,7 +170,11 @@ router.get('/usuario/:nro_usuario', async (req, res) => {
     const pedidos = await prisma.pedido.findMany({
       where: { nro_usuario: parseInt(req.params.nro_usuario) },
       include: {
-        linea_pedido: true,
+        linea_pedido: {
+          include: {
+            articulo: true
+          }
+        },
         localidad: { include: { provincia: true } }
       }
     });
@@ -179,7 +195,6 @@ router.get('/usuario/:nro_usuario', async (req, res) => {
 // =======================
 // ACTUALIZAR PEDIDO
 // =======================
-// Actualizar pedido
 router.put('/:id', async (req, res) => {
   const { id_metodo, id_localidad, linea_pedido } = req.body;
 
@@ -205,7 +220,11 @@ router.put('/:id', async (req, res) => {
         precio_total
       },
       include: {
-        linea_pedido: true,
+        linea_pedido: {
+          include: {
+            articulo: true
+          }
+        },
         localidad: { include: { provincia: true } }
       }
     });
