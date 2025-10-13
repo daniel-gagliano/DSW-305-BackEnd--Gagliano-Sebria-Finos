@@ -8,13 +8,16 @@ router.post('/', async (req, res) => {
   const { nombre, codigo_postal, cod_provincia } = req.body;
 
   try {
+    // El método create crea una nueva localidad en la base de datos
     const localidad = await prisma.localidad.create({
       data: {
         nombre,
         codigo_postal,
-        provincia: { connect: { cod_provincia } } //Ahi conecta con Provincia dependiendo el cod_provincia que se le pase a la localidad
+        // El connect establece la relación con la provincia usando su código
+        provincia: { connect: { cod_provincia } }
       }
     });
+    // Devuelve la localidad creada con status 201 (Created)
     res.status(201).json(localidad);
   } catch (error) {
     console.error(error);
@@ -24,13 +27,41 @@ router.post('/', async (req, res) => {
 
 // Listar todas las localidades
 router.get('', (req, res) => {
+  // El método findMany busca todas las localidades sin filtros
   prisma.Localidad.findMany()
     .then(localidades => res.json(localidades))
     .catch(error => res.status(500).json({ error: 'Error al obtener localidades' }));
 });
 
+// **NUEVO ENDPOINT**: Obtener localidades filtradas por provincia
+// Este endpoint se ejecuta cuando la URL es /localidades/provincia/:cod_provincia
+router.get('/provincia/:cod_provincia', async (req, res) => {
+  try {
+    // El parseInt convierte el parámetro de la URL (string) a número entero
+    const cod_provincia = parseInt(req.params.cod_provincia);
+    
+    // El findMany con where filtra las localidades que pertenecen a la provincia especificada
+    const localidades = await prisma.localidad.findMany({
+      where: {
+        cod_provincia: cod_provincia
+      },
+      // El include trae también los datos de la provincia relacionada
+      include: {
+        provincia: true
+      }
+    });
+    
+    // Devuelve el array de localidades que coinciden con la provincia
+    res.json(localidades);
+  } catch (error) {
+    console.error('Error al obtener localidades por provincia:', error);
+    res.status(500).json({ error: 'Error al obtener localidades' });
+  }
+});
+
 // Obtener una localidad por ID
 router.get('/:id', (req, res) => {
+  // El findUnique busca una sola localidad usando su ID como criterio
   prisma.Localidad.findUnique({
     where: {
       id_localidad: parseInt(req.params.id)
@@ -43,6 +74,7 @@ router.get('/:id', (req, res) => {
 // Actualizar una localidad
 router.put('/:id', (req, res) => {
   const { nombre, codigo_postal } = req.body;
+  // El update modifica una localidad existente identificada por su ID
   prisma.Localidad.update({
     where: {
       id_localidad: parseInt(req.params.id)
@@ -58,6 +90,7 @@ router.put('/:id', (req, res) => {
 
 // Eliminar una localidad
 router.delete('/:id', (req, res) => {
+  // El delete elimina permanentemente una localidad de la base de datos
   prisma.Localidad.delete({
     where: {
       id_localidad: parseInt(req.params.id)
@@ -65,17 +98,6 @@ router.delete('/:id', (req, res) => {
   })
     .then(() => res.json({ mensaje: 'Localidad eliminada' }))
     .catch(error => res.status(500).json({ error: 'Error al eliminar localidad' }));
-});
-
-router.post('/', async (req, res) => {
-  try {
-    const localidad = await prisma.localidad.create({
-      data: req.body
-    });
-    res.status(201).json(localidad);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
 });
 
 module.exports = router;
