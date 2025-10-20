@@ -3,66 +3,163 @@ const prisma = new PrismaClient();
 const express = require('express');
 const router = express.Router();
 
-// Obtener todos los artículos
-router.get('', (req, res) => {
-  prisma.Articulo.findMany()
-    .then(articulos => res.json(articulos))
-    .catch(error => res.status(500).json({ error: 'Error al obtener los artículos' }));
+// Obtener todos los artículos CON sus categorías
+router.get('', async (req, res) => {
+  try {
+    const articulos = await prisma.articulo.findMany({
+      include: {
+        ar_ca: {
+          include: {
+            categoria: true
+          }
+        }
+      }
+    });
+    res.json(articulos);
+  } catch (error) {
+    console.error('Error al obtener artículos:', error);
+    res.status(500).json({ error: 'Error al obtener los artículos' });
+  }
 });
 
-// Obtener un artículo por ID
-router.get('/:id', (req, res) => {
-  prisma.Articulo.findUnique({
-    where: {
-      id_articulo: parseInt(req.params.id)
-    }
-  })
-    .then(articulo => res.json(articulo))
-    .catch(error => res.status(500).json({ error: 'Error al obtener el artículo' }));
+// Obtener un artículo por ID CON sus categorías
+router.get('/:id', async (req, res) => {
+  try {
+    const articulo = await prisma.articulo.findUnique({
+      where: {
+        id_articulo: parseInt(req.params.id)
+      },
+      include: {
+        ar_ca: {
+          include: {
+            categoria: true
+          }
+        }
+      }
+    });
+    res.json(articulo);
+  } catch (error) {
+    console.error('Error al obtener artículo:', error);
+    res.status(500).json({ error: 'Error al obtener el artículo' });
+  }
 });
 
-// Crear un nuevo artículo
-router.post('', (req, res) => {
-  const { nombre, descripcion, stock, precio } = req.body;
-  prisma.Articulo.create({
-    data: {
-      nombre,
-      descripcion,
-      stock,
-      precio
+// Crear un nuevo artículo CON categorías
+router.post('', async (req, res) => {
+  try {
+    const { nombre, descripcion, stock, precio, categorias } = req.body;
+    
+    // Validar que vengan categorías
+    if (!categorias || categorias.length === 0) {
+      return res.status(400).json({ error: 'Debes seleccionar al menos una categoría' });
     }
-  })
-    .then(articulo => res.status(201).json(articulo))
-    .catch(error => res.status(500).json({ error: 'Error al crear el artículo' }));
+    
+    const articulo = await prisma.articulo.create({
+      data: {
+        nombre,
+        descripcion,
+        stock: parseInt(stock),
+        precio: parseFloat(precio),
+        ar_ca: {
+          create: categorias.map(id_categoria => ({
+            categoria: {
+              connect: { id_categoria: parseInt(id_categoria) }
+            }
+          }))
+        }
+      },
+      include: {
+        ar_ca: {
+          include: {
+            categoria: true
+          }
+        }
+      }
+    });
+    
+    res.status(201).json(articulo);
+  } catch (error) {
+    console.error('Error al crear artículo:', error);
+    res.status(500).json({ error: 'Error al crear el artículo', details: error.message });
+  }
 });
 
-// Actualizar un artículo existente
-router.put('/:id', (req, res) => {
-  const { nombre, descripcion, stock, precio } = req.body;
-  prisma.Articulo.update({
-    where: {
-      id_articulo: parseInt(req.params.id)
-    },
-    data: {
-      nombre,
-      descripcion,
-      stock,
-      precio
+// Actualizar un artículo existente CON categorías
+router.put('/:id', async (req, res) => {
+  try {
+    const { nombre, descripcion, stock, precio, categorias } = req.body;
+    const id_articulo = parseInt(req.params.id);
+    
+    // Validar que vengan categorías
+    if (!categorias || categorias.length === 0) {
+      return res.status(400).json({ error: 'Debes seleccionar al menos una categoría' });
     }
-  })
-    .then(articulo => res.json(articulo))
-    .catch(error => res.status(500).json({ error: 'Error al actualizar el artículo' }));
+    
+    // Primero eliminar las relaciones existentes
+    await prisma.categoria_Articulo.deleteMany({
+      where: {
+        id_articulo: id_articulo
+      }
+    });
+    
+    // Actualizar el artículo y crear nuevas relaciones
+    const articulo = await prisma.articulo.update({
+      where: {
+        id_articulo: id_articulo
+      },
+      data: {
+        nombre,
+        descripcion,
+        stock: parseInt(stock),
+        precio: parseFloat(precio),
+        ar_ca: {
+          create: categorias.map(id_categoria => ({
+            categoria: {
+              connect: { id_categoria: parseInt(id_categoria) }
+            }
+          }))
+        }
+      },
+      include: {
+        ar_ca: {
+          include: {
+            categoria: true
+          }
+        }
+      }
+    });
+    
+    res.json(articulo);
+  } catch (error) {
+    console.error('Error al actualizar artículo:', error);
+    res.status(500).json({ error: 'Error al actualizar el artículo', details: error.message });
+  }
 });
 
 // Eliminar un artículo
-router.delete('/:id', (req, res) => {
-  prisma.Articulo.delete({
-    where: {
-      id_articulo: parseInt(req.params.id)
-    }
-  })
-    .then(() => res.json({ mensaje: 'Artículo eliminado correctamente' }))
-    .catch(error => res.status(500).json({ error: 'Error al eliminar el artículo' }));
+router.delete('/:id', async (req, res) => {
+  try {
+    const id_articulo = parseInt(req.params.id);
+    
+    // Primero eliminar las relaciones en Categoria_Articulo
+    await prisma.categoria_Articulo.deleteMany({
+      where: {
+        id_articulo: id_articulo
+      }
+    });
+    
+    // Luego eliminar el artículo
+    await prisma.articulo.delete({
+      where: {
+        id_articulo: id_articulo
+      }
+    });
+    
+    res.json({ mensaje: 'Artículo eliminado correctamente' });
+  } catch (error) {
+    console.error('Error al eliminar artículo:', error);
+    res.status(500).json({ error: 'Error al eliminar el artículo' });
+  }
 });
 
 module.exports = router;
