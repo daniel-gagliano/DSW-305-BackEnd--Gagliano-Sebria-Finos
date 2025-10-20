@@ -71,6 +71,7 @@ model Descuento {
   desc_descuento String
 }
 
+
 model Linea_Pedido {
   id_articulo Int
   nro_pedido  Int
