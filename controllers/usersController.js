@@ -1,4 +1,3 @@
-
 // traigo el cliente de prisma para hablar con la DB (MySQL)
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
@@ -33,24 +32,28 @@ router.get('/:id', (req, res) => {
 });
 
 // Crear usuario
-// Crear usuario
 // POST /usuarios
 // Validación mínima y hash de password antes de guardar
 router.post('/', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, rol } = req.body; // ← Agregar rol
     // chequeo si ya existe un usuario con ese email para evitar unique constraint error
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return res.status(400).json({ error: 'El email ya está registrado' });
     }
-    // saltRounds: cuantas vueltas de hashing (10 para buena performance (? ))
+    // saltRounds: cuantas vueltas de hashing (10 para buena performance)
     const saltRounds = 10;
     // hasheo la contraseña para no guardarla en texto plano
     const hashed = await bcrypt.hash(password, saltRounds);
     // creo el usuario en la DB con la pass hasheada
     const user = await prisma.user.create({
-      data: { name, email, password: hashed }
+      data: { 
+        name, 
+        email, 
+        password: hashed,
+        rol: rol || 'CLIENTE' // ← Por defecto CLIENTE si no viene rol
+      }
     });
     // No devuelvo la contraseña en la respuesta por seguridad
     const { password: _p, ...userNoPass } = user;
@@ -62,44 +65,74 @@ router.post('/', async (req, res) => {
   }
 });
 
-  // Login: validar email + password
-  // POST /usuarios/login
-  router.post('/login', async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      // busco el usuario por email
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        return res.status(401).json({ error: 'Credenciales inválidas' });
-      }
-      // comparo password con el hash guardado
-      const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-        return res.status(401).json({ error: 'Credenciales inválidas' });
-      }
-      // devuelvo el usuario sin la contraseña y un token simple
-      const { password: _p, ...userNoPass } = user;
-      // crear token sencillo (en un secreto real usar variable de entorno)
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign({ id: userNoPass.id, email: userNoPass.email }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' });
-      return res.status(200).json({ user: userNoPass, token, message: 'Inicio de sesión exitoso' });
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
+// Login: validar email + password
+// POST /usuarios/login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    // busco el usuario por email
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
-  });
+    // comparo password con el hash guardado
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+    // devuelvo el usuario sin la contraseña y un token simple
+    const { password: _p, ...userNoPass } = user;
+    
+    // Log para debug (puedes quitarlo después)
+    console.log('Usuario logueado:', userNoPass); // ← Ver qué devuelve
+    
+    // crear token sencillo (en un secreto real usar variable de entorno)
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { id: userNoPass.id, email: userNoPass.email, rol: userNoPass.rol }, // ← Incluir rol en token
+      process.env.JWT_SECRET || 'dev-secret', 
+      { expiresIn: '7d' }
+    );
+    
+    return res.status(200).json({ 
+      user: userNoPass, // Ya incluye el campo 'rol'
+      token, 
+      message: 'Inicio de sesión exitoso' 
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 // Actualizar usuario
 // PUT /usuarios/:id
-// Nota: esta ruta actualmente actualiza también la contraseña tal cual venga
-// (podríamos hashearla si queremos manejar updates de password de forma segura)
-router.put('/:id', (req, res) => {
-  const { name, email, password } = req.body;
-  prisma.user.update({
-    where: { id: parseInt(req.params.id) },
-    data: { name, email, password }
-  })
-    .then(user => res.json(user))
-    .catch(error => res.status(500).json({ error: error.message }));
+// Ahora también hashea la contraseña si viene
+router.put('/:id', async (req, res) => {
+  try {
+    const { name, email, password, rol } = req.body;
+    const data = { name, email };
+    
+    // Si viene rol, lo agrego
+    if (rol) {
+      data.rol = rol;
+    }
+    
+    // Si viene password, lo hasheo
+    if (password) {
+      const saltRounds = 10;
+      data.password = await bcrypt.hash(password, saltRounds);
+    }
+    
+    const user = await prisma.user.update({
+      where: { id: parseInt(req.params.id) },
+      data
+    });
+    
+    const { password: _p, ...userNoPass } = user;
+    res.json(userNoPass);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Borrar usuario
