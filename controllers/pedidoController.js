@@ -1,14 +1,15 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const router = express.Router();
+const router = express.Router();  
 const prisma = new PrismaClient();
+
 console.log('pedidoController.js cargado (versión con usuario.connect)');
 
 // =======================
 // CREAR PEDIDO
 // =======================
 router.post('/', async (req, res) => {
-  const { id_metodo, nro_usuario, id_localidad, id_provincia, linea_pedido } = req.body;
+  const { id_metodo, nro_usuario, id_localidad, id_provincia, linea_pedido, direccion } = req.body; // ← AGREGADO direccion
 
   // validaciones mínimas en entrada
   if (!id_metodo || !nro_usuario || !Array.isArray(linea_pedido) || linea_pedido.length === 0) {
@@ -17,6 +18,7 @@ router.post('/', async (req, res) => {
 
   try {
     console.log('POST /pedidos body:', req.body);
+    console.log('Dirección recibida:', direccion); // ← AGREGADO LOG
 
     // validar usuario
     const usuario = await prisma.user.findUnique({ where: { id: Number(nro_usuario) } });
@@ -45,18 +47,30 @@ router.post('/', async (req, res) => {
     const id_localidad_usar = Number(id_localidad) || (localidad && localidad.id_localidad);
     if (!id_localidad_usar) return res.status(400).json({ error: 'No se pudo determinar la localidad para el pedido' });
 
+    // ========== VALIDAR STOCK ANTES DE CREAR PEDIDO ==========
+    for (const lp of linea_pedido) {
+      const articulo = await prisma.articulo.findUnique({ 
+        where: { id_articulo: Number(lp.id_articulo) } 
+      });
+      
+      if (!articulo) {
+        return res.status(404).json({ error: `Artículo ${lp.id_articulo} no encontrado` });
+      }
+      
+      if (articulo.stock < Number(lp.cantidad)) {
+        return res.status(400).json({ 
+          error: `Stock insuficiente para ${articulo.nombre}. Disponible: ${articulo.stock}, solicitado: ${lp.cantidad}` 
+        });
+      }
+    }
+    // ========== FIN VALIDACIÓN STOCK ==========
+
     // validar artículos y recalcular subtotales desde DB para evitar inconsistencias
     let subtotal = 0;
     const lineasCreate = [];
 
     for (const lp of linea_pedido) {
-      if (!lp.id_articulo || !lp.cantidad) {
-        return res.status(400).json({ error: 'Cada linea debe contener id_articulo y cantidad' });
-      }
       const articulo = await prisma.articulo.findUnique({ where: { id_articulo: Number(lp.id_articulo) } });
-      if (!articulo) {
-        return res.status(404).json({ error: `Artículo ${lp.id_articulo} no encontrado` });
-      }
       const sub_total_calculado = Number(articulo.precio) * Number(lp.cantidad);
       subtotal += sub_total_calculado;
       lineasCreate.push({
@@ -70,9 +84,9 @@ router.post('/', async (req, res) => {
     const precio_total = subtotal + costo_envio;
 
     // crear pedido con relaciones anidadas
-    // Para Prisma es necesario conectar la relación 'usuario' explícitamente
     const dataToCreate = {
       precio_total,
+      direccion: direccion || '', // ← AGREGADA ESTA LÍNEA
       usuario: { connect: { id: Number(nro_usuario) } },
       metodo_pago: { connect: { id_metodo: Number(id_metodo) } },
       localidad: { connect: { id_localidad: Number(id_localidad_usar) } },
@@ -95,9 +109,22 @@ router.post('/', async (req, res) => {
       }
     });
 
+    // ========== DESCONTAR STOCK DESPUÉS DE CREAR PEDIDO ==========
+    for (const lp of linea_pedido) {
+      await prisma.articulo.update({
+        where: { id_articulo: Number(lp.id_articulo) },
+        data: {
+          stock: {
+            decrement: Number(lp.cantidad)
+          }
+        }
+      });
+      console.log(`Stock actualizado para artículo ${lp.id_articulo}: -${lp.cantidad}`);
+    }
+    // ========== FIN DESCUENTO STOCK ==========
+
     res.status(201).json(pedido);
   } catch (error) {
-    // loguear stack completo para debug en servidor
     console.error('ERROR AL CREAR PEDIDO:', error.stack || error);
     res.status(500).json({ error: 'Error interno al crear pedido', details: error.message });
   }
