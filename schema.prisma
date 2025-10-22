@@ -21,6 +21,7 @@ model User {
 model MetodoPago {
   id_metodo   Int      @id @default(autoincrement())
   desc_metodo String
+  activo       Boolean              @default(true) // ← NUEVO
   pedido      Pedido[]
 }
 
@@ -28,6 +29,7 @@ model Categoria {
   id_categoria   Int                  @id @default(autoincrement())
   nom_categoria  String
   desc_categoria String
+  activo       Boolean              @default(true) // ← NUEVO
   ar_ca          Categoria_Articulo[]
 }
 
@@ -37,6 +39,7 @@ model Articulo {
   descripcion  String
   stock        Int
   precio       Float
+  activo       Boolean              @default(true) // ← NUEVO
   ar_ca        Categoria_Articulo[]
   linea_pedido Linea_Pedido[]
 }
@@ -44,6 +47,7 @@ model Articulo {
 model Categoria_Articulo {
   id_categoria Int
   id_articulo  Int
+  activo       Boolean              @default(true) // ← NUEVO
   categoria    Categoria @relation(fields: [id_categoria], references: [id_categoria])
   articulo     Articulo  @relation(fields: [id_articulo], references: [id_articulo])
 
@@ -54,6 +58,7 @@ model Provincia {
   cod_provincia Int         @id @default(autoincrement())
   descripcion   String
   costo_envio   Float
+  activo       Boolean              @default(true) // ← NUEVO
   localidades   Localidad[]
 }
 
@@ -62,6 +67,7 @@ model Localidad {
   nombre        String
   codigo_postal String
   cod_provincia Int
+  activo       Boolean              @default(true) // ← NUEVO
   provincia     Provincia @relation(fields: [cod_provincia], references: [cod_provincia])
   pedidos       Pedido[]
 }
@@ -69,6 +75,7 @@ model Localidad {
 model Descuento {
   cod_descuento  Int    @id @default(autoincrement())
   desc_descuento String
+  activo       Boolean              @default(true) // ← NUEVO
 }
 
 
