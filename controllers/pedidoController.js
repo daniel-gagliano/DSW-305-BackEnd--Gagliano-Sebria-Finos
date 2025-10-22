@@ -137,6 +137,7 @@ router.get('/', async (req, res) => {
   try {
     const pedidos = await prisma.pedido.findMany({
       include: {
+        usuario: true,
         linea_pedido: {
           include: {
             articulo: true
