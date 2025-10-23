@@ -7,6 +7,9 @@ const router = express.Router();
 router.get('', async (req, res) => {
   try {
     const articulos = await prisma.articulo.findMany({
+      where: {
+        activo: true
+      },
       include: {
         ar_ca: {
           include: {
@@ -148,14 +151,17 @@ router.delete('/:id', async (req, res) => {
       }
     });
     
-    // Luego eliminar el artículo
-    await prisma.articulo.delete({
+    // Soft delete: marcar como inactivo
+    const articulo = await prisma.articulo.update({
       where: {
         id_articulo: id_articulo
+      },
+      data: {
+        activo: false
       }
     });
     
-    res.json({ mensaje: 'Artículo eliminado correctamente' });
+    res.json({ mensaje: 'Artículo desactivado correctamente' });
   } catch (error) {
     console.error('Error al eliminar artículo:', error);
     res.status(500).json({ error: 'Error al eliminar el artículo' });

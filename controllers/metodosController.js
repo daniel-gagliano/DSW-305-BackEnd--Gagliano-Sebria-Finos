@@ -21,8 +21,12 @@ router.post('', (req, res) => {
 // router.get('/metodos', (req, res) => res.json(metodos_pago));
 
 router.get('', (req, res) => {
-prisma.metodoPago.findMany(
-).then(metodos_pago=>res.json(metodos_pago))
+  prisma.metodoPago.findMany({
+    where: {
+      activo: true
+    }
+  }).then(metodos_pago => res.json(metodos_pago))
+    .catch(error => res.status(500).json({ error: 'Error al obtener métodos de pago' }));
 });
 
 router.get('/:id', (req, res) => {
@@ -32,14 +36,20 @@ router.get('/:id', (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-await prisma.metodoPago.delete({
-  where: {
-    metodoPago
+  try {
+    const metodoPago = await prisma.metodoPago.update({
+      where: {
+        id_metodo: parseInt(req.params.id)
+      },
+      data: {
+        activo: false
+      }
+    });
+    res.json({ mensaje: 'Método de pago desactivado correctamente' });
+  } catch (error) {
+    console.error('Error al desactivar método de pago:', error);
+    res.status(500).json({ error: 'Error al desactivar el método de pago' });
   }
-})
-  await prisma.Categoria.findMany()
-    .then(metodo => res.json(todoslosMetodos))
-    .catch(error => res.status(500).json({ error: 'Error' }));
 });
 
 

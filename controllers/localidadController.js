@@ -25,10 +25,14 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Listar todas las localidades
+// Listar todas las localidades activas
 router.get('', (req, res) => {
-  // El método findMany busca todas las localidades sin filtros
-  prisma.Localidad.findMany()
+  // El método findMany busca todas las localidades activas
+  prisma.Localidad.findMany({
+    where: {
+      activo: true
+    }
+  })
     .then(localidades => res.json(localidades))
     .catch(error => res.status(500).json({ error: 'Error al obtener localidades' }));
 });
@@ -88,16 +92,19 @@ router.put('/:id', (req, res) => {
     .catch(error => res.status(500).json({ error: 'Error al actualizar localidad' }));
 });
 
-// Eliminar una localidad
+// Desactivar una localidad (soft delete)
 router.delete('/:id', (req, res) => {
-  // El delete elimina permanentemente una localidad de la base de datos
-  prisma.Localidad.delete({
+  // El update cambia el estado activo a false
+  prisma.Localidad.update({
     where: {
       id_localidad: parseInt(req.params.id)
+    },
+    data: {
+      activo: false
     }
   })
-    .then(() => res.json({ mensaje: 'Localidad eliminada' }))
-    .catch(error => res.status(500).json({ error: 'Error al eliminar localidad' }));
+    .then(() => res.json({ mensaje: 'Localidad desactivada correctamente' }))
+    .catch(error => res.status(500).json({ error: 'Error al desactivar localidad' }));
 });
 
 module.exports = router;

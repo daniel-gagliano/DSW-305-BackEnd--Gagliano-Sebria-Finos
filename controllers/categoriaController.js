@@ -18,9 +18,13 @@ router.post('', (req, res) => {
     .catch(error => res.status(500).json({ error: 'Error en post'}));
 });
 
-//Listar todas las categorias
+//Listar todas las categorias activas
 router.get('', (req, res) => {
-  prisma.Categoria.findMany()
+  prisma.Categoria.findMany({
+    where: {
+      activo: true
+    }
+  })
     .then(Categoria => res.json(Categoria))
     .catch(error => res.status(500).json({ error: 'Error en get' }));
 });
@@ -55,14 +59,20 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  await prisma.Categoria.delete({
-    where: {
-      id: parseInt(req.params.id)
-    }
-  })
-  await prisma.Categoria.findMany()
-    .then(Categoria => res.json(todaslasCategorias))
-    .catch(error => res.status(500).json({ error: 'Error' }));
+  try {
+    const categoria = await prisma.Categoria.update({
+      where: {
+        id_categoria: parseInt(req.params.id)
+      },
+      data: {
+        activo: false
+      }
+    });
+    res.json({ mensaje: 'Categoría desactivada correctamente' });
+  } catch (error) {
+    console.error('Error al desactivar categoría:', error);
+    res.status(500).json({ error: 'Error al desactivar la categoría' });
+  }
 });
 
 module.exports = router;

@@ -16,9 +16,13 @@ router.post('', (req, res) => {
     .catch(error => res.status(500).json({ error: 'Error al crear provincia' }));
 });
 
-// Obtener todas
+// Obtener todas las provincias activas
 router.get('', (req, res) => {
-  prisma.Provincia.findMany()
+  prisma.Provincia.findMany({
+    where: {
+      activo: true
+    }
+  })
     .then(provincias => res.json(provincias))
     .catch(error => res.status(500).json({ error: 'Error al obtener provincias' }));
 });
@@ -50,15 +54,18 @@ router.put('/:id', (req, res) => {
     .catch(error => res.status(500).json({ error: 'Error al actualizar provincia' }));
 });
 
-// Eliminar provincia
+// Desactivar provincia (soft delete)
 router.delete('/:id', (req, res) => {
-  prisma.Provincia.delete({
+  prisma.Provincia.update({
     where: {
       cod_provincia: parseInt(req.params.id)
+    },
+    data: {
+      activo: false
     }
   })
-    .then(() => res.json({ mensaje: 'Provincia eliminada' }))
-    .catch(error => res.status(500).json({ error: 'Error al eliminar provincia' }));
+    .then(() => res.json({ mensaje: 'Provincia desactivada correctamente' }))
+    .catch(error => res.status(500).json({ error: 'Error al desactivar provincia' }));
 });
 
 module.exports = router;
