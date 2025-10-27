@@ -8,7 +8,6 @@ const localidadRouter = require('./controllers/localidadController');
 const provinciaRouter = require('./controllers/provinciaController');
 const descuentoRouter = require('./controllers/descuentoController');
 const pedidoController = require('./controllers/pedidoController');
-const articuloRoutes = require('./routes/articuloRoutes'); 
 const articuloCategoriaController = require('./controllers/articuloCategoriaController');
 
 const cors = require('cors');
