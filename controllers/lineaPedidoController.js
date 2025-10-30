@@ -1,107 +1,176 @@
-const { PrismaClient } = require('@prisma/client');
-const express = require('express');
-const router = express.Router();
-const prisma = new PrismaClient();
+const lineaPedidoRepository = require('../repository/lineaPedido.repository');
 
-// Crear línea de pedido
-router.post('', async (req, res) => {
-  try {
-    const { nro_pedido, id_articulo, cantidad } = req.body;
-
-    // opcional: buscar el artículo para calcular subtotal
-    const articulo = await prisma.articulo.findUnique({
-      where: { id_articulo },
-    });
-    if (!articulo) {
-      return res.status(404).json({ error: 'Artículo no encontrado' });
+class LineaPedidoController {
+  async listarTodas(req, res) {
+    try {
+      const { nro_pedido } = req.query;
+      const filters = nro_pedido ? { nro_pedido: Number(nro_pedido) } : {};
+      
+      const lineas = await lineaPedidoRepository.findAll(filters);
+      res.json(lineas);
+    } catch (error) {
+      console.error('ERROR AL OBTENER LÍNEAS:', error);
+      res.status(500).json({ error: 'Error al obtener líneas de pedido' });
     }
-
-    const sub_total = articulo.precio * cantidad;
-
-    const linea = await prisma.linea_Pedido.create({
-      data: {
-        nro_pedido,
-        id_articulo,
-        cantidad,
-        sub_total,
-      },
-    });
-
-    res.json(linea);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al crear línea de pedido' });
   }
-});
 
-// Listar líneas (opcional: filtrar por nro_pedido)
-router.get('', async (req, res) => {
-  const { nro_pedido } = req.query;
-  const where = nro_pedido ? { nro_pedido: Number(nro_pedido) } : {};
-  const lineas = await prisma.linea_Pedido.findMany({ where });
-  res.json(lineas);
-});
+  async obtenerPorIds(req, res) {
+    try {
+      const nro_pedido = Number(req.params.nro_pedido);
+      const id_articulo = Number(req.params.id_articulo);
+      
+      const linea = await lineaPedidoRepository.findByIds(nro_pedido, id_articulo);
+      
+      if (!linea) {
+        return res.status(404).json({ error: 'Línea no encontrada' });
+      }
+      
+      res.json(linea);
+    } catch (error) {
+      console.error('ERROR AL OBTENER LÍNEA:', error);
+      res.status(500).json({ error: 'Error al obtener línea de pedido' });
+    }
+  }
 
-// Obtener línea por PK compuesta
-router.get('/:nro_pedido/:id_articulo', async (req, res) => {
-  const { nro_pedido, id_articulo } = req.params;
-  const linea = await prisma.linea_Pedido.findUnique({
-    where: {
-      nro_pedido_id_articulo: {
+  async crear(req, res) {
+    try {
+      const { nro_pedido, id_articulo, cantidad } = req.body;
+
+      // Validaciones
+      if (!nro_pedido || !id_articulo || !cantidad) {
+        return res.status(400).json({ 
+          error: 'nro_pedido, id_articulo y cantidad son obligatorios' 
+        });
+      }
+
+      if (cantidad <= 0) {
+        return res.status(400).json({ 
+          error: 'La cantidad debe ser mayor a 0' 
+        });
+      }
+
+      // Verificar que el pedido existe
+      const pedido = await lineaPedidoRepository.findPedidoById(Number(nro_pedido));
+      if (!pedido) {
+        return res.status(404).json({ error: 'Pedido no encontrado' });
+      }
+
+      // Verificar que el artículo existe
+      const articulo = await lineaPedidoRepository.findArticuloById(Number(id_articulo));
+      if (!articulo) {
+        return res.status(404).json({ error: 'Artículo no encontrado' });
+      }
+
+      // Verificar stock disponible
+      if (articulo.stock < cantidad) {
+        return res.status(400).json({ 
+          error: `Stock insuficiente. Disponible: ${articulo.stock}` 
+        });
+      }
+
+      // Verificar que la línea no exista ya
+      const lineaExistente = await lineaPedidoRepository.findByIds(
+        Number(nro_pedido),
+        Number(id_articulo)
+      );
+      
+      if (lineaExistente) {
+        return res.status(400).json({ 
+          error: 'Esta línea de pedido ya existe' 
+        });
+      }
+
+      // Calcular subtotal
+      const sub_total = articulo.precio * cantidad;
+
+      const linea = await lineaPedidoRepository.create({
         nro_pedido: Number(nro_pedido),
         id_articulo: Number(id_articulo),
-      },
-    },
-  });
-  if (!linea) return res.status(404).json({ error: 'Línea no encontrada' });
-  res.json(linea);
-});
+        cantidad: Number(cantidad),
+        sub_total
+      });
 
-// Actualizar
-router.put('/:nro_pedido/:id_articulo', async (req, res) => {
-  const { nro_pedido, id_articulo } = req.params;
-  const { cantidad } = req.body;
-
-  try {
-    const articulo = await prisma.articulo.findUnique({
-      where: { id_articulo: Number(id_articulo) },
-    });
-    if (!articulo) return res.status(404).json({ error: 'Artículo no encontrado' });
-
-    const sub_total = articulo.precio * cantidad;
-
-    const linea = await prisma.linea_Pedido.update({
-      where: {
-        nro_pedido_id_articulo: {
-          nro_pedido: Number(nro_pedido),
-          id_articulo: Number(id_articulo),
-        },
-      },
-      data: { cantidad, sub_total },
-    });
-
-    res.json(linea);
-  } catch (err) {
-    res.status(500).json({ error: 'Error al actualizar línea' });
+      res.status(201).json(linea);
+    } catch (error) {
+      console.error('ERROR AL CREAR LÍNEA:', error);
+      res.status(500).json({ 
+        error: 'Error al crear línea de pedido',
+        details: error.message 
+      });
+    }
   }
-});
 
-// Eliminar
-router.delete('/:nro_pedido/:id_articulo', async (req, res) => {
-  const { nro_pedido, id_articulo } = req.params;
-  try {
-    await prisma.linea_Pedido.delete({
-      where: {
-        nro_pedido_id_articulo: {
-          nro_pedido: Number(nro_pedido),
-          id_articulo: Number(id_articulo),
-        },
-      },
-    });
-    res.json({ mensaje: 'Línea eliminada' });
-  } catch (err) {
-    res.status(500).json({ error: 'Error al eliminar línea' });
+  async actualizar(req, res) {
+    try {
+      const nro_pedido = Number(req.params.nro_pedido);
+      const id_articulo = Number(req.params.id_articulo);
+      const { cantidad } = req.body;
+
+      // Validaciones
+      if (!cantidad || cantidad <= 0) {
+        return res.status(400).json({ 
+          error: 'La cantidad debe ser mayor a 0' 
+        });
+      }
+
+      // Verificar que la línea existe
+      const lineaExistente = await lineaPedidoRepository.findByIds(nro_pedido, id_articulo);
+      if (!lineaExistente) {
+        return res.status(404).json({ error: 'Línea no encontrada' });
+      }
+
+      // Verificar que el artículo existe
+      const articulo = await lineaPedidoRepository.findArticuloById(id_articulo);
+      if (!articulo) {
+        return res.status(404).json({ error: 'Artículo no encontrado' });
+      }
+
+      // Verificar stock disponible
+      if (articulo.stock < cantidad) {
+        return res.status(400).json({ 
+          error: `Stock insuficiente. Disponible: ${articulo.stock}` 
+        });
+      }
+
+      // Calcular nuevo subtotal
+      const sub_total = articulo.precio * cantidad;
+
+      const linea = await lineaPedidoRepository.update(nro_pedido, id_articulo, {
+        cantidad: Number(cantidad),
+        sub_total
+      });
+
+      res.json(linea);
+    } catch (error) {
+      console.error('ERROR AL ACTUALIZAR LÍNEA:', error);
+      res.status(500).json({ 
+        error: 'Error al actualizar línea',
+        details: error.message 
+      });
+    }
   }
-});
 
-module.exports = router;
+  async eliminar(req, res) {
+    try {
+      const nro_pedido = Number(req.params.nro_pedido);
+      const id_articulo = Number(req.params.id_articulo);
+
+      // Verificar que la línea existe
+      const lineaExistente = await lineaPedidoRepository.findByIds(nro_pedido, id_articulo);
+      if (!lineaExistente) {
+        return res.status(404).json({ error: 'Línea no encontrada' });
+      }
+
+      await lineaPedidoRepository.delete(nro_pedido, id_articulo);
+      res.json({ mensaje: 'Línea eliminada correctamente' });
+    } catch (error) {
+      console.error('ERROR AL ELIMINAR LÍNEA:', error);
+      res.status(500).json({ 
+        error: 'Error al eliminar línea',
+        details: error.message 
+      });
+    }
+  }
+}
+
+module.exports = new LineaPedidoController();

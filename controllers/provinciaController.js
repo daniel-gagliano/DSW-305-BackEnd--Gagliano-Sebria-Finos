@@ -1,71 +1,122 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-const express = require('express');
-const router = express.Router();
+const provinciaRepository = require('../repository/provincia.repository');
 
-// Crear provincia
-router.post('', (req, res) => {
-  const { descripcion, costo_envio } = req.body;
-  prisma.Provincia.create({
-    data: {
-      descripcion,
-      costo_envio
+class ProvinciaController {
+  async listarTodas(req, res) {
+    try {
+      const provincias = await provinciaRepository.findAll();
+      res.json(provincias);
+    } catch (error) {
+      console.error('ERROR AL OBTENER PROVINCIAS:', error);
+      res.status(500).json({ error: 'Error al obtener provincias' });
     }
-  })
-    .then(provincia => res.status(201).json(provincia))
-    .catch(error => res.status(500).json({ error: 'Error al crear provincia' }));
-});
+  }
 
-// Obtener todas las provincias activas
-router.get('', (req, res) => {
-  prisma.Provincia.findMany({
-    where: {
-      activo: true
+  async obtenerPorId(req, res) {
+    try {
+      const cod_provincia = parseInt(req.params.id);
+      const provincia = await provinciaRepository.findById(cod_provincia);
+
+      if (!provincia) {
+        return res.status(404).json({ error: 'Provincia no encontrada' });
+      }
+
+      res.json(provincia);
+    } catch (error) {
+      console.error('ERROR AL OBTENER PROVINCIA:', error);
+      res.status(500).json({ error: 'Error al obtener provincia' });
     }
-  })
-    .then(provincias => res.json(provincias))
-    .catch(error => res.status(500).json({ error: 'Error al obtener provincias' }));
-});
+  }
 
-// Obtener por ID
-router.get('/:id', (req, res) => {
-  prisma.Provincia.findUnique({
-    where: {
-      cod_provincia: parseInt(req.params.id)
+  async crear(req, res) {
+    try {
+      const { descripcion, costo_envio } = req.body;
+
+      // Validaciones
+      if (!descripcion || costo_envio === undefined) {
+        return res.status(400).json({ 
+          error: 'Descripción y costo de envío son obligatorios' 
+        });
+      }
+
+      if (costo_envio < 0) {
+        return res.status(400).json({ 
+          error: 'El costo de envío no puede ser negativo' 
+        });
+      }
+
+      const data = {
+        descripcion,
+        costo_envio: parseFloat(costo_envio)
+      };
+
+      const provincia = await provinciaRepository.create(data);
+      res.status(201).json(provincia);
+    } catch (error) {
+      console.error('ERROR AL CREAR PROVINCIA:', error);
+      res.status(500).json({ 
+        error: 'Error al crear provincia',
+        details: error.message 
+      });
     }
-  })
-    .then(provincia => res.json(provincia))
-    .catch(error => res.status(500).json({ error: 'Error al obtener provincia' }));
-});
+  }
 
-// Actualizar provincia
-router.put('/:id', (req, res) => {
-  const { descripcion, costo_envio } = req.body;
-  prisma.Provincia.update({
-    where: {
-      cod_provincia: parseInt(req.params.id)
-    },
-    data: {
-      descripcion,
-      costo_envio
+  async actualizar(req, res) {
+    try {
+      const cod_provincia = parseInt(req.params.id);
+      const { descripcion, costo_envio } = req.body;
+
+      // Verificar que la provincia existe
+      const provinciaExistente = await provinciaRepository.findById(cod_provincia);
+      if (!provinciaExistente) {
+        return res.status(404).json({ error: 'Provincia no encontrada' });
+      }
+
+      // Validaciones
+      if (!descripcion || costo_envio === undefined) {
+        return res.status(400).json({ 
+          error: 'Descripción y costo de envío son obligatorios' 
+        });
+      }
+
+      if (costo_envio < 0) {
+        return res.status(400).json({ 
+          error: 'El costo de envío no puede ser negativo' 
+        });
+      }
+
+      const data = {
+        descripcion,
+        costo_envio: parseFloat(costo_envio)
+      };
+
+      const provincia = await provinciaRepository.update(cod_provincia, data);
+      res.json(provincia);
+    } catch (error) {
+      console.error('ERROR AL ACTUALIZAR PROVINCIA:', error);
+      res.status(500).json({ 
+        error: 'Error al actualizar provincia',
+        details: error.message 
+      });
     }
-  })
-    .then(provincia => res.json(provincia))
-    .catch(error => res.status(500).json({ error: 'Error al actualizar provincia' }));
-});
+  }
 
-// Desactivar provincia (soft delete)
-router.delete('/:id', (req, res) => {
-  prisma.Provincia.update({
-    where: {
-      cod_provincia: parseInt(req.params.id)
-    },
-    data: {
-      activo: false
+  async eliminar(req, res) {
+    try {
+      const cod_provincia = parseInt(req.params.id);
+
+      // Verificar que la provincia existe
+      const provinciaExistente = await provinciaRepository.findById(cod_provincia);
+      if (!provinciaExistente) {
+        return res.status(404).json({ error: 'Provincia no encontrada' });
+      }
+
+      await provinciaRepository.softDelete(cod_provincia);
+      res.json({ mensaje: 'Provincia desactivada correctamente' });
+    } catch (error) {
+      console.error('ERROR AL DESACTIVAR PROVINCIA:', error);
+      res.status(500).json({ error: 'Error al desactivar provincia' });
     }
-  })
-    .then(() => res.json({ mensaje: 'Provincia desactivada correctamente' }))
-    .catch(error => res.status(500).json({ error: 'Error al desactivar provincia' }));
-});
+  }
+}
 
-module.exports = router;
+module.exports = new ProvinciaController();

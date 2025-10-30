@@ -1,76 +1,108 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-const express = require('express');
-const router = express.Router();
+const descuentoRepository = require('../repository/descuento.repository');
 
-
-//Metodo post para cargar un nuevo descuento
-router.post('', (req, res) => {
-  const { cod_descuento, desc_descuento} = req.body;
-  prisma.Descuento.create({
-    data: {
-      cod_descuento, 
-      desc_descuento
+class DescuentoController {
+  async listarTodos(req, res) {
+    try {
+      const descuentos = await descuentoRepository.findAll();
+      res.json(descuentos);
+    } catch (error) {
+      console.error('ERROR AL OBTENER DESCUENTOS:', error);
+      res.status(500).json({ error: 'Error al obtener descuentos' });
     }
-  })
-    .then((Descuento)=>res.send("Descuento Creado"))
-    .catch(error => res.status(500).json({ error: 'Error en post'}));
-});
-
-//Listar todos los descuentos activos
-router.get('', (req, res) => {
-  prisma.Descuento.findMany({
-    where: {
-      activo: true
-    }
-  })
-    .then(Descuento => res.json(Descuento))
-    .catch(error => res.status(500).json({ error: 'Error en get' }));
-});
-
-//filtrar por codigo
-router.get('/:id', (req, res) => {
-  prisma.Descuento.findUnique({
-    where: {
-      cod_descuento: parseInt(req.params.id)
-    }
-  })
-    .then(Descuento => res.json(Descuento))
-    .catch(error => res.status(500).json({ error: 'Error en get id' }));
-});
-
-
-//Modificar algo por codigo
-router.put('/:id', (req, res) => {
-  const { cod_descuento, desc_descuento } = req.body;
-  prisma.Descuento.update({
-    where: {
-      cod_descuento: parseInt(req.params.id)
-    },
-    data: {
-        cod_descuento, 
-        desc_descuento
-    }
-  })
-    .then(Descuento => res.json(Descuento))
-    .catch(error => res.status(500).json({ error: 'Error en put id' }));
-});
-
-router.delete('/:id', async (req, res) => {
-  try {
-    const descuento = await prisma.Descuento.update({
-      where: {
-        cod_descuento: parseInt(req.params.id)
-      },
-      data: {
-        activo: false
-      }
-    });
-    res.json({ mensaje: 'Descuento desactivado correctamente' });
-  } catch (error) {
-    console.error('Error al desactivar descuento:', error);
-    res.status(500).json({ error: 'Error al desactivar el descuento' });
   }
-});
 
-module.exports = router;
+  async obtenerPorId(req, res) {
+    try {
+      const cod_descuento = parseInt(req.params.id);
+      const descuento = await descuentoRepository.findById(cod_descuento);
+
+      if (!descuento) {
+        return res.status(404).json({ error: 'Descuento no encontrado' });
+      }
+
+      res.json(descuento);
+    } catch (error) {
+      console.error('ERROR AL OBTENER DESCUENTO:', error);
+      res.status(500).json({ error: 'Error al obtener descuento' });
+    }
+  }
+
+  async crear(req, res) {
+    try {
+      const { desc_descuento } = req.body;
+
+      // Validaciones
+      if (!desc_descuento) {
+        return res.status(400).json({ 
+          error: 'La descripción del descuento es obligatoria' 
+        });
+      }
+
+      const data = {
+        desc_descuento
+      };
+
+      const descuento = await descuentoRepository.create(data);
+      res.status(201).json(descuento);
+    } catch (error) {
+      console.error('ERROR AL CREAR DESCUENTO:', error);
+      res.status(500).json({ 
+        error: 'Error al crear descuento',
+        details: error.message 
+      });
+    }
+  }
+
+  async actualizar(req, res) {
+    try {
+      const cod_descuento = parseInt(req.params.id);
+      const { desc_descuento } = req.body;
+
+      // Verificar que el descuento existe
+      const descuentoExistente = await descuentoRepository.findById(cod_descuento);
+      if (!descuentoExistente) {
+        return res.status(404).json({ error: 'Descuento no encontrado' });
+      }
+
+      // Validaciones
+      if (!desc_descuento) {
+        return res.status(400).json({ 
+          error: 'La descripción es obligatoria' 
+        });
+      }
+
+      const data = {
+        desc_descuento
+      };
+
+      const descuento = await descuentoRepository.update(cod_descuento, data);
+      res.json(descuento);
+    } catch (error) {
+      console.error('ERROR AL ACTUALIZAR DESCUENTO:', error);
+      res.status(500).json({ 
+        error: 'Error al actualizar descuento',
+        details: error.message 
+      });
+    }
+  }
+
+  async eliminar(req, res) {
+    try {
+      const cod_descuento = parseInt(req.params.id);
+
+      // Verificar que el descuento existe
+      const descuentoExistente = await descuentoRepository.findById(cod_descuento);
+      if (!descuentoExistente) {
+        return res.status(404).json({ error: 'Descuento no encontrado' });
+      }
+
+      await descuentoRepository.softDelete(cod_descuento);
+      res.json({ mensaje: 'Descuento desactivado correctamente' });
+    } catch (error) {
+      console.error('ERROR AL DESACTIVAR DESCUENTO:', error);
+      res.status(500).json({ error: 'Error al desactivar el descuento' });
+    }
+  }
+}
+
+module.exports = new DescuentoController();

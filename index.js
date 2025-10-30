@@ -1,33 +1,35 @@
-// levanto express y traigo los controllers
 const express = require('express');
-const usersController = require('./controllers/usersController');
-const metodosController = require('./controllers/metodosController');
-const categoriaController = require('./controllers/categoriaController');
-const articuloController = require('./controllers/articuloController');
-const localidadRouter = require('./controllers/localidadController');
-const provinciaRouter = require('./controllers/provinciaController');
-const descuentoRouter = require('./controllers/descuentoController');
-const pedidoController = require('./controllers/pedidoController');
-const articuloCategoriaController = require('./controllers/articuloCategoriaController');
-
 const cors = require('cors');
+
+// Importo las rutas 
+const usersRoutes = require('./routes/user.routes');
+const lineaPedidoRoutes = require('./routes/lineaPedido.routes');
+const metodoPagoRoutes = require('./routes/metodoPago.routes');
+const categoriaRoutes = require('./routes/categoria.routes');
+const articuloRoutes = require('./routes/articulo.routes');
+const localidadRoutes = require('./routes/localidad.routes');
+const provinciaRoutes = require('./routes/provincia.routes');
+const descuentoRoutes = require('./routes/descuento.routes');
+const pedidoRoutes = require('./routes/pedido.routes');
+const articuloCategoriaRoutes = require('./routes/articuloCategoria.routes');
+
 const app = express();
 
 // Middlewares globales
 app.use(cors()); // habilita CORS para que el front pueda llamar al back desde otro puerto
 app.use(express.json()); // parsea JSON en el body
 
-// Ruteo: asocio la base path con cada controller
-// Ej: todas las rutas definidas en usersController responden bajo /usuarios
-app.use('/usuarios', usersController);
-app.use('/metodos', metodosController);
-app.use('/categorias', categoriaController);
-app.use('/articulos', articuloController);
-app.use('/localidades', localidadRouter);
-app.use('/provincias', provinciaRouter);
-app.use('/descuentos', descuentoRouter);
-app.use('/pedidos', pedidoController);
-app.use('/articulo_categoria', articuloCategoriaController);
+// Ruteo
+app.use('/usuarios', usersRoutes);
+app.use('/metodos', metodoPagoRoutes);
+app.use('/categorias', categoriaRoutes);
+app.use('/articulos', articuloRoutes);
+app.use('/localidades', localidadRoutes);
+app.use('/provincias', provinciaRoutes);
+app.use('/descuentos', descuentoRoutes);
+app.use('/pedidos', pedidoRoutes);
+app.use('/linea_pedidos', lineaPedidoRoutes);
+app.use('/articulo_categoria', articuloCategoriaRoutes);
 
 
 const PORT = 3000;
