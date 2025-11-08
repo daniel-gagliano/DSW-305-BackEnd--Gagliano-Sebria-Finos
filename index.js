@@ -13,11 +13,11 @@ const descuentoRoutes = require('./routes/descuento.routes');
 const pedidoRoutes = require('./routes/pedido.routes');
 const articuloCategoriaRoutes = require('./routes/articuloCategoria.routes');
 
-const app = express();
+const app = express(); //instancia de servidor web 
 
 // Middlewares globales
 app.use(cors()); // habilita CORS para que el front pueda llamar al back desde otro puerto
-app.use(express.json()); // parsea JSON en el body
+app.use(express.json()); // le digo que use los metodos de manejo de json en las peticiones "cuando te llegue algo del req.body si o si tiene que ser json"
 
 // Ruteo
 app.use('/usuarios', usersRoutes);
@@ -29,7 +29,7 @@ app.use('/provincias', provinciaRoutes);
 app.use('/descuentos', descuentoRoutes);
 app.use('/pedidos', pedidoRoutes);
 app.use('/linea_pedidos', lineaPedidoRoutes);
-app.use('/articulo_categoria', articuloCategoriaRoutes);
+app.use('/articulo_categoria', articuloCategoriaRoutes); //este metodo es redundando ya que las relaciones se manejan desde articulo y categoria
 
 
 const PORT = 3000;
@@ -40,6 +40,6 @@ app.listen(PORT, () => {
 
 // Middleware global de manejo de errores (último middleware)
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err && (err.stack || err));
+  console.error('Unhandled error:', err && (err.stack || err)); //err.stack es la pila entera de error. Es mejor para debuguear
   res.status(500).json({ error: 'Internal Server Error' });
 });

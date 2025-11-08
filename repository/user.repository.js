@@ -1,9 +1,9 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { PrismaClient } = require('@prisma/client'); 
+const prisma = new PrismaClient(); //instancia de PrismaClient para interactuar con la base de datos
 
 class UserRepository {
   async findAll() {
-    return await prisma.user.findMany();
+    return await prisma.user.findMany(); 
   }
 
   async findById(id) {
@@ -19,15 +19,15 @@ class UserRepository {
   }
 
   async create(data) {
-    return await prisma.user.create({
+    return await prisma.user.create({ 
       data
     });
   }
 
   async update(id, data) {
     return await prisma.user.update({
-      where: { id },
-      data
+      where: { id }, //id es un valor primitivo, un valor simple
+      data //data es un objeto porque puede tener varios campos para actualizar
     });
   }
 

@@ -1,15 +1,16 @@
 const userRepository = require('../repository/user.repository');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt'); //Aca lo que hace es importar la libreria bcrypt para hashear contraseñas
+const jwt = require('jsonwebtoken'); //Aca se importa jsonwebtoken para crear y verificar tokens JWT
 
-class UserController {
-  async listarTodos(req, res) {
+class UserController 
+{
+  async listarTodos(req, res) { //cuando el front hace un fetch, res es la respuesta que se le va a enviar
     try {
       const users = await userRepository.findAll();
       res.json(users);
-    } catch (error) {
+    } catch (error) { //si no estuviese el try catch, el servidor se caeria si hay un error
       res.status(500).json({ error: error.message });
-    }
+    } 
   }
 
   async obtenerPorId(req, res) {
@@ -45,15 +46,15 @@ class UserController {
       }
       
       // Hashear la contraseña
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      
+      const saltRounds = 10; //saltRounds es la cantidad de veces que se aplica el algoritmo de hash
+      const hashedPassword = await bcrypt.hash(password, saltRounds); 
+
       // Crear usuario
       const user = await userRepository.create({
         name,
         email,
-        password: hashedPassword,
-        rol: rol || 'CLIENTE'
+        password: hashedPassword, //los dos puntos son para asignar un valor a una propiedad del objeto
+        rol: rol || 'CLIENTE' 
       });
       
       // No devolver la contraseña
@@ -82,21 +83,23 @@ class UserController {
       }
       
       // Comparar contraseñas
-      const match = await bcrypt.compare(password, user.password);
+      const match = await bcrypt.compare(password, user.password); 
       if (!match) {
         return res.status(401).json({ error: 'Credenciales inválidas' });
       }
       
       // Remover contraseña del objeto
-      const { password: _p, ...userNoPass } = user;
+      const { password: _p, ...userNoPass } = user; //Los 3 puntitos crean una copia del objeto sin la propiedad password. 
+                                                    // _p es una convención para indicar que no se usará.
       
       console.log('Usuario logueado:', userNoPass);
       
       // Crear token JWT
       const token = jwt.sign(
         { id: userNoPass.id, email: userNoPass.email, rol: userNoPass.rol },
-        process.env.JWT_SECRET || 'dev-secret',
-        { expiresIn: '7d' }
+        process.env.JWT_SECRET || 'dev-secret',  //dev-secret lo que hace es usar una clave por defecto en caso de que no haya una variable de entorno seteada
+                                                //no se pasa a produccion!
+        { expiresIn: '7d' } // cuanto tiempo queres que dure el token
       );
       
       return res.status(200).json({
@@ -120,7 +123,7 @@ class UserController {
         return res.status(404).json({ error: 'Usuario no encontrado' });
       }
       
-      const data = {};
+      const data = {}; //data es un objeto que va a contener los campos a actualizar
       
       if (name) data.name = name;
       if (email) data.email = email;
@@ -135,8 +138,8 @@ class UserController {
       const user = await userRepository.update(id, data);
       
       // No devolver la contraseña
-      const { password: _p, ...userNoPass } = user;
-      res.json(userNoPass);
+      const { password: _p, ...userNoPass } = user; 
+      res.json(userNoPass); 
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -155,11 +158,11 @@ class UserController {
       await userRepository.delete(id);
       
       const todosLosUsuarios = await userRepository.findAll();
-      res.json(todosLosUsuarios);
+      res.json(todosLosUsuarios); // Devuelve la lista actualizada de usuarios sin el usuario eliminado
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   }
 }
 
-module.exports = new UserController();
+module.exports = new UserController(); // exporta una instancia de la clase UserController

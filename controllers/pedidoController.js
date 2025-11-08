@@ -47,15 +47,32 @@ class PedidoController {
       const nro_usuario = parseInt(req.params.nro_usuario);
       const pedidos = await pedidoRepository.findByUserId(nro_usuario);
 
-      const pedidosConTotal = pedidos.map(pedido => {
-        const totalLineas = pedido.linea_pedido.reduce((acc, l) => acc + l.sub_total, 0);
-        const precio_envio = pedido.localidad?.provincia?.costo_envio || 0;
-        return { 
-          ...pedido, 
-          precio_total: totalLineas + precio_envio, 
-          precio_envio 
-        };
-      });
+const pedidosConTotal = [];
+
+for (let i = 0; i < pedidos.length; i++) {
+  const pedido = pedidos[i];
+  
+  // Sumar precio de cada una de las lineas
+  let totalLineas = 0;
+  for (let j = 0; j < pedido.linea_pedido.length; j++) {
+    totalLineas = totalLineas + pedido.linea_pedido[j].sub_total;
+  }
+  
+  // Obtener envío
+  let precio_envio = 0;
+  if (pedido.localidad && pedido.localidad.provincia) {
+    precio_envio = pedido.localidad.provincia.costo_envio;
+  }
+  
+  // Crear nuevo objeto
+  const pedidoConTotal = {
+    ...pedido,
+    precio_total: totalLineas + precio_envio,
+    precio_envio: precio_envio
+  };
+  
+  pedidosConTotal.push(pedidoConTotal);
+}
 
       res.json(pedidosConTotal);
     } catch (error) {
@@ -64,7 +81,7 @@ class PedidoController {
     }
   }
 
-  async crear(req, res) {
+  async crear(req, res) { //hay validaciones que no se usan nunca ya que estan pensadas para un text box en el front, no las sacamos para no romper nada jeje
     const { id_metodo, nro_usuario, id_localidad, id_provincia, linea_pedido, direccion } = req.body;
 
     try {
@@ -79,8 +96,8 @@ class PedidoController {
       console.log('Dirección recibida:', direccion);
 
       // Validar usuario
-      const usuario = await pedidoRepository.findUserById(Number(nro_usuario));
-      if (!usuario) {
+      const usuario = await pedidoRepository.findUserById(Number(nro_usuario)); //devuelve la instancia User si la encuentra
+      if (!usuario) { 
         return res.status(404).json({ error: 'Usuario no encontrado' });
       }
 
@@ -91,30 +108,32 @@ class PedidoController {
       }
 
       // Resolver localidad
-      let localidad = null;
+      let localidad = null; //crea el objeto localidad vacio
       if (!id_localidad && id_provincia) {
         localidad = await pedidoRepository.findLocalidadByProvincia(Number(id_provincia));
         if (!localidad) {
           return res.status(404).json({ error: 'No hay localidades para la provincia indicada' });
         }
       } else {
-        localidad = await pedidoRepository.findLocalidadById(Number(id_localidad));
+        localidad = await pedidoRepository.findLocalidadById(Number(id_localidad)); //Se pasa como number al metodo
         if (!localidad) {
           return res.status(404).json({ error: 'Localidad no encontrada' });
         }
       }
-
-      const id_localidad_usar = Number(id_localidad) || (localidad && localidad.id_localidad);
+      // de la 107 a la 110 investigar
+      const id_localidad_usar = Number(id_localidad) || (localidad && localidad.id_localidad); // acá se usa la id_localidad como numero, no es lo mismo
       if (!id_localidad_usar) {
         return res.status(400).json({ error: 'No se pudo determinar la localidad para el pedido' });
       }
+// Esta validacion si está bien
 
       // Validar stock antes de crear pedido
-      for (const lp of linea_pedido) {
+      for (const lp of linea_pedido) { //cada lp es el producto y la cantidad que componen el pedido total. En un pedido tengo distintos productos y distintas cantidades
         const articulo = await pedidoRepository.findArticuloById(Number(lp.id_articulo));
         
         if (!articulo) {
           return res.status(404).json({ error: `Artículo ${lp.id_articulo} no encontrado` });
+          //el return te saca del flujo del for. Si no encuentra un articulo, no sigue con el for ni con nada, corta todo y devuelve el error
         }
         
         if (articulo.stock < Number(lp.cantidad)) {

@@ -1,4 +1,4 @@
-const articuloRepository = require('../repository/articulo.repository');
+const articuloRepository = require('../repository/articulo.repository'); 
 
 class ArticuloController {
   async obtenerTodos(req, res) {
@@ -55,7 +55,7 @@ class ArticuloController {
         descripcion,
         stock: parseInt(stock),
         precio: parseFloat(precio),
-        categorias: categorias.map(id => parseInt(id))
+        categorias: categorias.map(id => parseInt(id)) //transforma en integer la id de las categorias que se asocian al articulo
       };
       
       const articulo = await articuloRepository.create(data);
@@ -71,7 +71,7 @@ class ArticuloController {
 
   async actualizar(req, res) {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id); // req.params.id siempre es string y representa la id del articulo a actualizar
       const { nombre, descripcion, stock, precio, categorias } = req.body;
       
       // Validar que el artículo exista
